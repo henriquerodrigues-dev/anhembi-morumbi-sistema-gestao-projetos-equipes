@@ -9,7 +9,7 @@ Este projeto consiste no desenvolvimento de um sistema para gestão de projetos 
 * **Linguagem de Programação:** Java
 * **Padrão de Arquitetura:** MVC (Model-View-Controller)
 * **Ambiente de Desenvolvimento:** Visual Studio Code
-* **Sistema de Gerenciamento de Banco de Dados (SGBD):** [Nome do SGBD, ex: MySQL, PostgreSQL, SQLite]
+* **Sistema de Gerenciamento de Banco de Dados (SGBD):** SQLite
 
 ---
 
@@ -25,8 +25,21 @@ Este projeto consiste no desenvolvimento de um sistema para gestão de projetos 
 
 ---
 
-## Como Executar o Projeto
+## Configuração do Ambiente
 
 1.  Certifique-se de ter o **JDK** e o **Visual Studio Code** instalados.
 2.  Abra a pasta do projeto no VS Code.
-3.  Execute o arquivo `Main.java` para iniciar a aplicação.
+
+## Configuração do SQLite
+
+1.  Baixe o driver JDBC para SQLite em `https://github.com/xerial/sqlite-jdbc/releases`.
+2.  Crie uma pasta chamada `lib` na raiz do seu projeto.
+3.  Adicione o arquivo `.jar` do driver JDBC na pasta `lib`.
+4.  No VS Code, clique com o botão direito em `Referenced Libraries` e selecione `Add JARs...` para adicionar o driver.
+
+---
+
+## Como Executar o Projeto
+
+1.  Abra a pasta do projeto no VS Code.
+2.  Execute o arquivo `App.java` para iniciar a aplicação.
