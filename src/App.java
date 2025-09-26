@@ -1,3 +1,4 @@
+import dao.UsuarioDAO;
 import model.Equipe;
 import model.Projeto;
 import model.Usuario;
@@ -79,5 +80,14 @@ public class App {
         for (Usuario u : equipeDev.getMembros()) {
             System.out.println("- " + u.getNomeCompleto() + " (" + u.getCargo() + ")");
         }
+
+        // --- Teste de persistência de dados ---
+        System.out.println("\n----------------------------------\n");
+        System.out.println("Tentando salvar usuários no banco de dados...");
+        
+        UsuarioDAO usuarioDAO = new UsuarioDAO();
+        usuarioDAO.create(gerente);
+        usuarioDAO.create(membro);
+
     }
 }
