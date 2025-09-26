@@ -3,6 +3,8 @@ import model.Equipe;
 import model.Projeto;
 import model.Usuario;
 import util.Database;
+import view.MainFrame;
+import javax.swing.SwingUtilities;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
@@ -89,5 +91,10 @@ public class App {
         usuarioDAO.create(gerente);
         usuarioDAO.create(membro);
 
+        // --- Teste da GUI ---
+        SwingUtilities.invokeLater(() -> {
+            MainFrame mainFrame = new MainFrame();
+            mainFrame.setVisible(true);
+        });
     }
 }
