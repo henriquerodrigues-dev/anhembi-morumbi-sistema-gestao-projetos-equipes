@@ -31,6 +31,9 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.JComboBox;
+import com.toedter.calendar.JDateChooser;
+import java.text.SimpleDateFormat;
 import java.awt.Cursor;
 import javax.swing.JPopupMenu;
 import javax.swing.JMenuItem;
@@ -69,6 +72,12 @@ public class MainFrame extends JFrame {
     private JTextField loginField;
     private JPasswordField senhaField;
     private JButton toggleSenhaButton;
+    
+    // Campos específicos para projetos
+    private JDateChooser dataInicioChooser;
+    private JDateChooser dataTerminoChooser;
+    private JComboBox<String> statusComboBox;
+    private JComboBox<String> gerenteComboBox;
     private JTable userTable;
     private DefaultTableModel tableModel;
     private JPanel contentPanel;
@@ -647,6 +656,7 @@ public class MainFrame extends JFrame {
                 usuarioDAO.create(novoUsuario);
                 showToast("Usuário salvo com sucesso!", "success");
                 clearFields();
+                refreshUserListRealTime();
             } catch (Exception ex) {
                 showToast("Erro ao salvar usuário: " + ex.getMessage(), "error");
             }
@@ -692,7 +702,7 @@ public class MainFrame extends JFrame {
                 
                 usuarioDAO.update(usuarioParaAtualizar);
                 showToast("Usuário atualizado com sucesso!", "success");
-                refreshUserList();
+                refreshUserListRealTime();
             } catch (Exception ex) {
                 showToast("Erro ao atualizar usuário: " + ex.getMessage(), "error");
             }
@@ -707,7 +717,7 @@ public class MainFrame extends JFrame {
             
             usuarioDAO.delete(id);
             showToast("Usuário excluído com sucesso!", "success");
-            refreshUserList();
+            refreshUserListRealTime();
         });
         
         // Centraliza o painel de cadastro
@@ -911,7 +921,7 @@ public class MainFrame extends JFrame {
                 
                 if (result == JOptionPane.YES_OPTION) {
                     usuarioDAO.delete(id);
-                    refreshUserList();
+                    refreshUserListRealTime();
                     searchIdField.setText("");
                     showToast("Usuário excluído com sucesso!", "success");
                 }
@@ -1025,7 +1035,7 @@ public class MainFrame extends JFrame {
                             if (confirm == JOptionPane.YES_OPTION) {
                                 UsuarioDAO usuarioDAO = new UsuarioDAO();
                                 usuarioDAO.delete(id);
-                                refreshUserList();
+                                refreshUserListRealTime();
                                 showToast("Usuário '" + nome + "' excluído com sucesso!", "success");
                             } else {
                                 showToast("Exclusão cancelada pelo usuário", "info");
@@ -1048,16 +1058,7 @@ public class MainFrame extends JFrame {
         tableContainer.add(scrollPane, BorderLayout.CENTER);
         listaPanel.add(tableContainer, BorderLayout.CENTER);
         
-        // Modern refresh button
-        JPanel buttonContainer = new JPanel(new FlowLayout(FlowLayout.CENTER));
-        buttonContainer.setOpaque(false);
-        buttonContainer.setBorder(new EmptyBorder(10, 0, 10, 0));
-        
-        JButton refreshListButton = createIconActionButton(FontAwesomeSolid.SYNC_ALT, "Atualizar Lista", Color.decode("#3498DB"));
-        buttonContainer.add(refreshListButton);
-        listaPanel.add(buttonContainer, BorderLayout.SOUTH);
-
-        refreshListButton.addActionListener(e -> refreshUserList());
+        // Atualização automática em tempo real - botão removido
 
         return listaPanel;
     }
@@ -1325,15 +1326,31 @@ public class MainFrame extends JFrame {
         JTextField projetoIdField = createStyledTextField();
         JTextField projetoNomeField = createStyledTextField();
         JTextField projetoDescricaoField = createStyledTextField();
-        JTextField projetoDataInicioField = createStyledTextField();
-        JTextField projetoDataTerminoField = createStyledTextField();
-        JTextField projetoStatusField = createStyledTextField();
-        JTextField projetoGerenteIdField = createStyledTextField();
         
-        // Add hint text
-        projetoDataInicioField.setToolTipText("Formato: YYYY-MM-DD (ex: 2024-01-15)");
-        projetoDataTerminoField.setToolTipText("Formato: YYYY-MM-DD (ex: 2024-12-31)");
-        projetoGerenteIdField.setToolTipText("ID do usuário que será o gerente do projeto");
+        // Date choosers
+        dataInicioChooser = new JDateChooser();
+        dataInicioChooser.setDateFormatString("dd/MM/yyyy");
+        dataInicioChooser.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        dataInicioChooser.setPreferredSize(new Dimension(0, 35));
+        
+        dataTerminoChooser = new JDateChooser();
+        dataTerminoChooser.setDateFormatString("dd/MM/yyyy");
+        dataTerminoChooser.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        dataTerminoChooser.setPreferredSize(new Dimension(0, 35));
+        
+        // Status combo box with default options
+        String[] statusOptions = {"", "Pendente", "Em Andamento", "Concluído", "Cancelado", "Pausado"};
+        statusComboBox = new JComboBox<>(statusOptions);
+        statusComboBox.setEditable(true);
+        statusComboBox.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        statusComboBox.setPreferredSize(new Dimension(0, 35));
+        
+        // Manager combo box
+        gerenteComboBox = new JComboBox<>();
+        gerenteComboBox.setEditable(true);
+        gerenteComboBox.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        gerenteComboBox.setPreferredSize(new Dimension(0, 35));
+        loadManagerOptions();
         
         formPanel.add(createFieldLabel("ID do Projeto (para edição):", FontAwesomeSolid.ID_CARD));
         formPanel.add(projetoIdField);
@@ -1341,14 +1358,14 @@ public class MainFrame extends JFrame {
         formPanel.add(projetoNomeField);
         formPanel.add(createFieldLabel("Descrição:", FontAwesomeSolid.ALIGN_LEFT));
         formPanel.add(projetoDescricaoField);
-        formPanel.add(createFieldLabel("Data de Início (YYYY-MM-DD):", FontAwesomeSolid.CALENDAR_ALT));
-        formPanel.add(projetoDataInicioField);
-        formPanel.add(createFieldLabel("Data de Término (YYYY-MM-DD):", FontAwesomeSolid.CALENDAR_CHECK));
-        formPanel.add(projetoDataTerminoField);
+        formPanel.add(createFieldLabel("Data de Início:", FontAwesomeSolid.CALENDAR_ALT));
+        formPanel.add(dataInicioChooser);
+        formPanel.add(createFieldLabel("Data de Término:", FontAwesomeSolid.CALENDAR_CHECK));
+        formPanel.add(dataTerminoChooser);
         formPanel.add(createFieldLabel("Status:", FontAwesomeSolid.TASKS));
-        formPanel.add(projetoStatusField);
-        formPanel.add(createFieldLabel("ID do Gerente:", FontAwesomeSolid.USER_TIE));
-        formPanel.add(projetoGerenteIdField);
+        formPanel.add(statusComboBox);
+        formPanel.add(createFieldLabel("Gerente Responsável:", FontAwesomeSolid.USER_TIE));
+        formPanel.add(gerenteComboBox);
         
         // Button panel
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 0));
@@ -1368,25 +1385,22 @@ public class MainFrame extends JFrame {
         buttonPanel.add(limparProjetoBtn);
 
         // Button actions
-        salvarProjetoBtn.addActionListener(e -> salvarProjeto(projetoNomeField, projetoDescricaoField, 
-            projetoDataInicioField, projetoDataTerminoField, projetoStatusField, projetoGerenteIdField));
+        salvarProjetoBtn.addActionListener(e -> salvarProjetoModerno(projetoNomeField, projetoDescricaoField));
 
-        buscarProjetoBtn.addActionListener(e -> buscarProjeto(projetoIdField, projetoNomeField, 
-            projetoDescricaoField, projetoDataInicioField, projetoDataTerminoField, projetoStatusField, projetoGerenteIdField));
+        buscarProjetoBtn.addActionListener(e -> buscarProjetoModerno(projetoIdField, projetoNomeField, projetoDescricaoField));
 
-        atualizarProjetoBtn.addActionListener(e -> atualizarProjeto(projetoIdField, projetoNomeField, 
-            projetoDescricaoField, projetoDataInicioField, projetoDataTerminoField, projetoStatusField, projetoGerenteIdField));
+        atualizarProjetoBtn.addActionListener(e -> atualizarProjetoModerno(projetoIdField, projetoNomeField, projetoDescricaoField));
 
-        excluirProjetoBtn.addActionListener(e -> excluirProjeto(projetoIdField));
+        excluirProjetoBtn.addActionListener(e -> excluirProjetoModerno(projetoIdField));
 
         limparProjetoBtn.addActionListener(e -> {
             projetoIdField.setText("");
             projetoNomeField.setText("");
             projetoDescricaoField.setText("");
-            projetoDataInicioField.setText("");
-            projetoDataTerminoField.setText("");
-            projetoStatusField.setText("");
-            projetoGerenteIdField.setText("");
+            dataInicioChooser.setDate(null);
+            dataTerminoChooser.setDate(null);
+            statusComboBox.setSelectedIndex(0);
+            gerenteComboBox.setSelectedIndex(0);
         });
         
         formWrapper.add(formTitle, BorderLayout.NORTH);
@@ -1428,19 +1442,11 @@ public class MainFrame extends JFrame {
         projetoScrollPane.setBorder(new LineBorder(Color.decode("#BDC3C7"), 1));
         projetoScrollPane.setPreferredSize(new Dimension(800, 250));
         
-        // Refresh button
-        JPanel refreshPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-        refreshPanel.setOpaque(false);
-        refreshPanel.setBorder(new EmptyBorder(10, 0, 0, 0));
-        
-        JButton refreshProjetosBtn = createIconActionButton(FontAwesomeSolid.SYNC_ALT, "Atualizar Lista", Color.decode("#3498DB"));
-        refreshPanel.add(refreshProjetosBtn);
-        
-        refreshProjetosBtn.addActionListener(e -> refreshProjetoList(projetoTableModel));
+        // Add context menu to table
+        addProjetoContextMenu(projetoTable, projetoTableModel);
         
         tableWrapper.add(tableTitle, BorderLayout.NORTH);
         tableWrapper.add(projetoScrollPane, BorderLayout.CENTER);
-        tableWrapper.add(refreshPanel, BorderLayout.SOUTH);
         
         // Load initial data
         refreshProjetoList(projetoTableModel);
@@ -1448,7 +1454,266 @@ public class MainFrame extends JFrame {
         return tableWrapper;
     }
 
-    // Métodos de lógica para Projetos
+    private void loadManagerOptions() {
+        gerenteComboBox.removeAllItems();
+        gerenteComboBox.addItem(""); // Opção vazia
+        
+        List<Usuario> usuarios = usuarioDAO.findAll();
+        for (Usuario usuario : usuarios) {
+            gerenteComboBox.addItem(usuario.getNomeCompleto() + " (ID: " + usuario.getId() + ")");
+        }
+    }
+
+    private String getManagerIdFromComboBox() {
+        String selected = (String) gerenteComboBox.getSelectedItem();
+        if (selected == null || selected.trim().isEmpty()) {
+            return "";
+        }
+        
+        // Extract ID from "Nome (ID: 123)" format
+        int idStart = selected.lastIndexOf("ID: ");
+        int idEnd = selected.lastIndexOf(")");
+        
+        if (idStart != -1 && idEnd != -1) {
+            return selected.substring(idStart + 4, idEnd);
+        }
+        
+        return "";
+    }
+
+    private void setManagerInComboBox(String managerId) {
+        if (managerId == null || managerId.trim().isEmpty()) {
+            gerenteComboBox.setSelectedIndex(0);
+            return;
+        }
+        
+        for (int i = 0; i < gerenteComboBox.getItemCount(); i++) {
+            String item = (String) gerenteComboBox.getItemAt(i);
+            if (item.contains("ID: " + managerId + ")")) {
+                gerenteComboBox.setSelectedIndex(i);
+                return;
+            }
+        }
+    }
+
+    private void addProjetoContextMenu(JTable table, DefaultTableModel tableModel) {
+        JPopupMenu contextMenu = new JPopupMenu();
+        
+        JMenuItem editItem = new JMenuItem("Editar Projeto");
+        editItem.setIcon(FontIcon.of(FontAwesomeSolid.EDIT, 12, Color.decode("#F39C12")));
+        editItem.addActionListener(e -> {
+            int selectedRow = table.getSelectedRow();
+            if (selectedRow != -1) {
+                String projetoId = (String) tableModel.getValueAt(selectedRow, 0);
+                // Buscar e carregar projeto nos campos (simulando busca por ID)
+                buscarProjetoModerno(createTextField(projetoId), null, null);
+            }
+        });
+        
+        JMenuItem deleteItem = new JMenuItem("Excluir Projeto");
+        deleteItem.setIcon(FontIcon.of(FontAwesomeSolid.TRASH, 12, Color.decode("#E74C3C")));
+        deleteItem.addActionListener(e -> {
+            int selectedRow = table.getSelectedRow();
+            if (selectedRow != -1) {
+                String projetoId = (String) tableModel.getValueAt(selectedRow, 0);
+                excluirProjetoModerno(createTextField(projetoId));
+            }
+        });
+        
+        contextMenu.add(editItem);
+        contextMenu.add(deleteItem);
+        
+        table.setComponentPopupMenu(contextMenu);
+    }
+
+    private JTextField createTextField(String text) {
+        JTextField field = new JTextField(text);
+        return field;
+    }
+
+    // Métodos modernos de lógica para Projetos
+    private void salvarProjetoModerno(JTextField nome, JTextField descricao) {
+        if (nome.getText().trim().isEmpty()) {
+            showToast("Nome do projeto é obrigatório!", "error");
+            return;
+        }
+        
+        if (descricao.getText().trim().isEmpty()) {
+            showToast("Descrição do projeto é obrigatória!", "error");
+            return;
+        }
+        
+        if (dataInicioChooser.getDate() == null) {
+            showToast("Data de início é obrigatória!", "error");
+            return;
+        }
+        
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        String dataInicio = sdf.format(dataInicioChooser.getDate());
+        String dataTermino = dataTerminoChooser.getDate() != null ? 
+                            sdf.format(dataTerminoChooser.getDate()) : "";
+        
+        String status = statusComboBox.getSelectedItem() != null ? 
+                       statusComboBox.getSelectedItem().toString().trim() : "";
+        
+        if (status.isEmpty()) {
+            showToast("Status do projeto é obrigatório!", "error");
+            return;
+        }
+        
+        String gerenteId = getManagerIdFromComboBox();
+        
+        controller.ProjetoController projetoController = new controller.ProjetoController();
+        String erro = projetoController.criarProjeto(
+            nome.getText().trim(), descricao.getText().trim(), dataInicio,
+            dataTermino, status, gerenteId
+        );
+        
+        if (erro == null) {
+            showToast("Projeto salvo com sucesso!", "success");
+            // Limpar campos
+            nome.setText("");
+            descricao.setText("");
+            dataInicioChooser.setDate(null);
+            dataTerminoChooser.setDate(null);
+            statusComboBox.setSelectedIndex(0);
+            gerenteComboBox.setSelectedIndex(0);
+            // Atualizar lista em tempo real
+            refreshProjetoListRealTime();
+        } else {
+            showToast(erro, "error");
+        }
+    }
+
+    private void buscarProjetoModerno(JTextField id, JTextField nome, JTextField descricao) {
+        if (id.getText().trim().isEmpty()) {
+            showToast("ID é obrigatório para busca!", "error");
+            return;
+        }
+        
+        controller.ProjetoController projetoController = new controller.ProjetoController();
+        Projeto projeto = projetoController.buscarProjeto(id.getText());
+        if (projeto != null) {
+            if (nome != null) nome.setText(projeto.getNome());
+            if (descricao != null) descricao.setText(projeto.getDescricao());
+            
+            // Set dates
+            try {
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+                dataInicioChooser.setDate(sdf.parse(projeto.getDataInicio().toString()));
+                if (projeto.getDataTerminoPrevista() != null) {
+                    dataTerminoChooser.setDate(sdf.parse(projeto.getDataTerminoPrevista().toString()));
+                }
+            } catch (Exception e) {
+                // Ignore parsing errors
+            }
+            
+            // Set status
+            statusComboBox.setSelectedItem(projeto.getStatus());
+            
+            // Set manager
+            if (projeto.getGerenteResponsavel() != null) {
+                setManagerInComboBox(projeto.getGerenteResponsavel().getId());
+            }
+            
+            showToast("Projeto encontrado!", "success");
+        } else {
+            showToast("Projeto não encontrado!", "error");
+        }
+    }
+
+    private void atualizarProjetoModerno(JTextField id, JTextField nome, JTextField descricao) {
+        if (id.getText().trim().isEmpty()) {
+            showToast("ID é obrigatório para atualização!", "error");
+            return;
+        }
+        
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        String dataInicio = dataInicioChooser.getDate() != null ? 
+                           sdf.format(dataInicioChooser.getDate()) : "";
+        String dataTermino = dataTerminoChooser.getDate() != null ? 
+                            sdf.format(dataTerminoChooser.getDate()) : "";
+        
+        String status = statusComboBox.getSelectedItem() != null ? 
+                       statusComboBox.getSelectedItem().toString().trim() : "";
+        
+        String gerenteId = getManagerIdFromComboBox();
+        
+        controller.ProjetoController projetoController = new controller.ProjetoController();
+        String erro = projetoController.atualizarProjeto(
+            id.getText(), nome.getText(), descricao.getText(), dataInicio,
+            dataTermino, status, gerenteId
+        );
+        
+        if (erro == null) {
+            showToast("Projeto atualizado com sucesso!", "success");
+            refreshProjetoListRealTime();
+        } else {
+            showToast(erro, "error");
+        }
+    }
+
+    private void excluirProjetoModerno(JTextField id) {
+        if (id.getText().trim().isEmpty()) {
+            showToast("ID é obrigatório para exclusão!", "error");
+            return;
+        }
+        
+        String[] options = {"Sim, Excluir", "Cancelar"};
+        int result = JOptionPane.showOptionDialog(
+            this,
+            "ATENÇÃO: Esta ação não pode ser desfeita!\n\n" +
+            "Deseja realmente excluir este projeto?\n\n" +
+            "ID: " + id.getText(),
+            "Confirmar Exclusão de Projeto",
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.WARNING_MESSAGE,
+            null,
+            options,
+            options[1]
+        );
+        
+        if (result == JOptionPane.YES_OPTION) {
+            controller.ProjetoController projetoController = new controller.ProjetoController();
+            String erro = projetoController.excluirProjeto(id.getText());
+            if (erro == null) {
+                showToast("Projeto excluído com sucesso!", "success");
+                id.setText("");
+                refreshProjetoListRealTime();
+            } else {
+                showToast(erro, "error");
+            }
+        }
+    }
+
+    private void refreshProjetoListRealTime() {
+        // Find the project table model (assuming it's stored somewhere accessible)
+        if (projetosPanel != null) {
+            SwingUtilities.invokeLater(() -> {
+                // Refresh project list automatically
+                Component[] components = findTableModelInPanel(projetosPanel);
+                for (Component comp : components) {
+                    if (comp instanceof JScrollPane) {
+                        JScrollPane scrollPane = (JScrollPane) comp;
+                        if (scrollPane.getViewport().getView() instanceof JTable) {
+                            JTable table = (JTable) scrollPane.getViewport().getView();
+                            if (table.getModel() instanceof DefaultTableModel) {
+                                DefaultTableModel model = (DefaultTableModel) table.getModel();
+                                refreshProjetoList(model);
+                                break;
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    private Component[] findTableModelInPanel(Container panel) {
+        return panel.getComponents();
+    }
+
+    // Métodos de lógica para Projetos (antigos - manter para compatibilidade)
     private void salvarProjeto(JTextField nome, JTextField descricao, JTextField dataInicio, 
                               JTextField dataTermino, JTextField status, JTextField gerenteId) {
         controller.ProjetoController projetoController = new controller.ProjetoController();
@@ -1725,16 +1990,6 @@ public class MainFrame extends JFrame {
         // Management panel for members
         JPanel memberPanel = createMemberManagementPanel();
         
-        // Refresh button
-        JPanel refreshPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-        refreshPanel.setOpaque(false);
-        refreshPanel.setBorder(new EmptyBorder(10, 0, 0, 0));
-        
-        JButton refreshEquipesBtn = createIconActionButton(FontAwesomeSolid.SYNC_ALT, "Atualizar Lista", Color.decode("#3498DB"));
-        refreshPanel.add(refreshEquipesBtn);
-        
-        refreshEquipesBtn.addActionListener(e -> refreshEquipeList(equipeTableModel));
-        
         tableWrapper.add(tableTitle, BorderLayout.NORTH);
         tableWrapper.add(equipeScrollPane, BorderLayout.CENTER);
         tableWrapper.add(memberPanel, BorderLayout.SOUTH);
@@ -1790,6 +2045,7 @@ public class MainFrame extends JFrame {
                 showToast("Membro adicionado com sucesso!", "success");
                 memberEquipeIdField.setText("");
                 memberUsuarioIdField.setText("");
+                refreshEquipeListRealTime();
             } else {
                 showToast(erro, "error");
             }
@@ -1802,6 +2058,7 @@ public class MainFrame extends JFrame {
                 showToast("Membro removido com sucesso!", "success");
                 memberEquipeIdField.setText("");
                 memberUsuarioIdField.setText("");
+                refreshEquipeListRealTime();
             } else {
                 showToast(erro, "error");
             }
@@ -1823,6 +2080,8 @@ public class MainFrame extends JFrame {
             // Limpar campos
             nome.setText("");
             descricao.setText("");
+            // Atualizar lista em tempo real
+            refreshEquipeListRealTime();
         } else {
             showToast(erro, "error");
         }
@@ -1856,6 +2115,7 @@ public class MainFrame extends JFrame {
         
         if (erro == null) {
             showToast("Equipe atualizada com sucesso!", "success");
+            refreshEquipeListRealTime();
         } else {
             showToast(erro, "error");
         }
@@ -1887,6 +2147,7 @@ public class MainFrame extends JFrame {
             if (erro == null) {
                 showToast("Equipe excluída com sucesso!", "success");
                 id.setText("");
+                refreshEquipeListRealTime();
             } else {
                 showToast(erro, "error");
             }
@@ -1906,5 +2167,32 @@ public class MainFrame extends JFrame {
             row.add(String.valueOf(equipe.getMembros().size()) + " membros");
             tableModel.addRow(row);
         }
+    }
+
+    private void refreshEquipeListRealTime() {
+        if (equipesPanel != null) {
+            SwingUtilities.invokeLater(() -> {
+                Component[] components = findTableModelInPanel(equipesPanel);
+                for (Component comp : components) {
+                    if (comp instanceof JScrollPane) {
+                        JScrollPane scrollPane = (JScrollPane) comp;
+                        if (scrollPane.getViewport().getView() instanceof JTable) {
+                            JTable table = (JTable) scrollPane.getViewport().getView();
+                            if (table.getModel() instanceof DefaultTableModel) {
+                                DefaultTableModel model = (DefaultTableModel) table.getModel();
+                                refreshEquipeList(model);
+                                break;
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    private void refreshUserListRealTime() {
+        SwingUtilities.invokeLater(() -> {
+            refreshUserList();
+        });
     }
 }
