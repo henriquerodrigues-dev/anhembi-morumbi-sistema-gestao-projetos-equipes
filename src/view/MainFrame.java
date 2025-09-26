@@ -6,6 +6,7 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
+import javax.swing.JPasswordField;
 import javax.swing.JScrollPane;
 import javax.swing.BoxLayout;
 import javax.swing.JTable;
@@ -28,6 +29,8 @@ import java.awt.event.MouseEvent;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import java.awt.Cursor;
 import javax.swing.JPopupMenu;
 import javax.swing.JMenuItem;
@@ -64,7 +67,8 @@ public class MainFrame extends JFrame {
     private JTextField emailField;
     private JTextField cargoField;
     private JTextField loginField;
-    private JTextField senhaField;
+    private JPasswordField senhaField;
+    private JButton toggleSenhaButton;
     private JTable userTable;
     private DefaultTableModel tableModel;
     private JPanel contentPanel;
@@ -131,7 +135,67 @@ public class MainFrame extends JFrame {
         emailField = createStyledTextField();
         cargoField = createStyledTextField();
         loginField = createStyledTextField();
-        senhaField = createStyledTextField();
+        senhaField = createStyledPasswordField();
+        
+        // Configurar formatação automática do CPF
+        configurarFormatacaoCPF();
+    }
+
+    private void configurarFormatacaoCPF() {
+        cpfField.getDocument().addDocumentListener(new DocumentListener() {
+            private boolean isUpdating = false;
+            
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                formatarCPF();
+            }
+            
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                formatarCPF();
+            }
+            
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                formatarCPF();
+            }
+            
+            private void formatarCPF() {
+                if (isUpdating) return;
+                
+                SwingUtilities.invokeLater(() -> {
+                    isUpdating = true;
+                    String text = cpfField.getText();
+                    String numbersOnly = text.replaceAll("[^0-9]", "");
+                    
+                    if (numbersOnly.length() > 11) {
+                        numbersOnly = numbersOnly.substring(0, 11);
+                    }
+                    
+                    StringBuilder formatted = new StringBuilder();
+                    for (int i = 0; i < numbersOnly.length(); i++) {
+                        if (i == 3 || i == 6) {
+                            formatted.append(".");
+                        } else if (i == 9) {
+                            formatted.append("-");
+                        }
+                        formatted.append(numbersOnly.charAt(i));
+                    }
+                    
+                    int caretPosition = cpfField.getCaretPosition();
+                    cpfField.setText(formatted.toString());
+                    
+                    // Ajustar posição do cursor
+                    try {
+                        cpfField.setCaretPosition(Math.min(caretPosition, formatted.length()));
+                    } catch (IllegalArgumentException ex) {
+                        // Ignorar erro de posição inválida
+                    }
+                    
+                    isUpdating = false;
+                });
+            }
+        });
     }
 
     private void setupGlobalStyles() {
@@ -159,6 +223,73 @@ public class MainFrame extends JFrame {
             new EmptyBorder(10, 15, 10, 15)
         ));
         return field;
+    }
+
+    private JPasswordField createStyledPasswordField() {
+        JPasswordField field = new JPasswordField();
+        field.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        field.setBackground(Color.WHITE);
+        field.setForeground(Color.decode("#0B192C"));
+        field.setBorder(new CompoundBorder(
+            new LineBorder(Color.decode("#BDC3C7"), 1, true),
+            new EmptyBorder(10, 15, 10, 15)
+        ));
+        field.setEchoChar('*');
+        return field;
+    }
+
+    private JPanel createSenhaPanel() {
+        JPanel senhaPanel = new JPanel(new BorderLayout());
+        senhaPanel.setOpaque(false);
+        
+        // Criar botão toggle
+        toggleSenhaButton = new JButton() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                // Background
+                Color bgColor = Color.decode("#BDC3C7");
+                if (getModel().isRollover()) {
+                    bgColor = Color.decode("#95A5A6");
+                }
+                
+                g2d.setColor(bgColor);
+                g2d.fillRoundRect(0, 0, getWidth(), getHeight(), 5, 5);
+                
+                // Ícone
+                FontIcon icon = senhaField.getEchoChar() == 0 ? 
+                    FontIcon.of(FontAwesomeSolid.EYE_SLASH, 14, Color.decode("#0B192C")) :
+                    FontIcon.of(FontAwesomeSolid.EYE, 14, Color.decode("#0B192C"));
+                
+                int iconX = (getWidth() - 14) / 2;
+                int iconY = (getHeight() - 14) / 2;
+                icon.paintIcon(this, g2d, iconX, iconY);
+            }
+        };
+        
+        toggleSenhaButton.setPreferredSize(new Dimension(40, 40));
+        toggleSenhaButton.setContentAreaFilled(false);
+        toggleSenhaButton.setBorderPainted(false);
+        toggleSenhaButton.setFocusPainted(false);
+        toggleSenhaButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        toggleSenhaButton.setToolTipText("Mostrar/Ocultar senha");
+        
+        // Ação do botão
+        toggleSenhaButton.addActionListener(e -> {
+            if (senhaField.getEchoChar() == 0) {
+                senhaField.setEchoChar('*');
+            } else {
+                senhaField.setEchoChar((char) 0);
+            }
+            toggleSenhaButton.repaint();
+        });
+        
+        senhaPanel.add(senhaField, BorderLayout.CENTER);
+        senhaPanel.add(toggleSenhaButton, BorderLayout.EAST);
+        
+        return senhaPanel;
     }
 
     private JPanel createMainPanel() {
@@ -281,10 +412,20 @@ public class MainFrame extends JFrame {
         });
                             break;
                         case "projetos":
-                            button.addActionListener(e -> showToast("Funcionalidade de Projetos implementada! Em desenvolvimento...", "info"));
+                            button.addActionListener(e -> {
+                                if (projetosPanel == null) {
+                                    projetosPanel = createProjetosPanel();
+                                }
+                                showPanel(projetosPanel);
+                            });
                             break;
                         case "equipes":
-                            button.addActionListener(e -> showToast("Funcionalidade de Equipes implementada! Em desenvolvimento...", "info"));
+                            button.addActionListener(e -> {
+                                if (equipesPanel == null) {
+                                    equipesPanel = createEquipesPanel();
+                                }
+                                showPanel(equipesPanel);
+                            });
                             break;
                     }
                 }
@@ -395,8 +536,6 @@ public class MainFrame extends JFrame {
         
         cadastroWrapper.add(titlePanel, BorderLayout.NORTH);
         
-        formPanel.add(createFieldLabel("ID (para busca, edição ou exclusão):", FontAwesomeSolid.ID_CARD));
-        formPanel.add(idField);
         formPanel.add(createFieldLabel("Nome Completo:", FontAwesomeSolid.USER));
         formPanel.add(nomeField);
         formPanel.add(createFieldLabel("CPF:", FontAwesomeSolid.ID_BADGE));
@@ -408,7 +547,7 @@ public class MainFrame extends JFrame {
         formPanel.add(createFieldLabel("Login:", FontAwesomeSolid.USER_CIRCLE));
         formPanel.add(loginField);
         formPanel.add(createFieldLabel("Senha:", FontAwesomeSolid.LOCK));
-        formPanel.add(senhaField);
+        formPanel.add(createSenhaPanel());
 
         JPanel buttonPanel = new JPanel(new GridLayout(1, 4, 15, 15));
         buttonPanel.setOpaque(false);
@@ -436,7 +575,7 @@ public class MainFrame extends JFrame {
             String email = emailField.getText().trim();
             String cargo = cargoField.getText().trim();
             String login = loginField.getText().trim();
-            String senha = senhaField.getText().trim();
+            String senha = new String(senhaField.getPassword()).trim();
 
             if (!ValidadorUtil.validarCampoObrigatorio(nome)) {
                 showToast("Nome completo é obrigatório!", "error");
@@ -684,7 +823,104 @@ public class MainFrame extends JFrame {
         listTitlePanel.add(listIconLabel);
         listTitlePanel.add(listTitleText);
         listTitlePanel.setBorder(new EmptyBorder(20, 0, 20, 0));
-        listaPanel.add(listTitlePanel, BorderLayout.NORTH);
+        
+        // Painel de busca por ID
+        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        searchPanel.setOpaque(false);
+        searchPanel.setBorder(new EmptyBorder(0, 0, 20, 0));
+        
+        JLabel searchLabel = new JLabel("Buscar por ID:");
+        searchLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        searchLabel.setForeground(Color.decode("#0B192C"));
+        
+        JTextField searchIdField = createStyledTextField();
+        searchIdField.setPreferredSize(new Dimension(200, 35));
+        
+        JButton searchButton = createIconActionButton(FontAwesomeSolid.SEARCH, "Buscar", Color.decode("#3498DB"));
+        JButton editButton = createIconActionButton(FontAwesomeSolid.EDIT, "Editar", Color.decode("#F39C12"));
+        JButton deleteButton = createIconActionButton(FontAwesomeSolid.TRASH, "Excluir", Color.decode("#E74C3C"));
+        
+        searchPanel.add(searchLabel);
+        searchPanel.add(Box.createHorizontalStrut(10));
+        searchPanel.add(searchIdField);
+        searchPanel.add(Box.createHorizontalStrut(10));
+        searchPanel.add(searchButton);
+        searchPanel.add(Box.createHorizontalStrut(5));
+        searchPanel.add(editButton);
+        searchPanel.add(Box.createHorizontalStrut(5));
+        searchPanel.add(deleteButton);
+        
+        // Ações dos botões
+        searchButton.addActionListener(e -> {
+            String id = searchIdField.getText().trim();
+            if (id.isEmpty()) {
+                showToast("Digite um ID para buscar", "warning");
+                return;
+            }
+            
+            Usuario usuario = usuarioDAO.findById(id);
+            if (usuario != null) {
+                // Preencher campos no formulário de cadastro
+                nomeField.setText(usuario.getNomeCompleto());
+                cpfField.setText(ValidadorUtil.formatarCPF(usuario.getCpf()));
+                emailField.setText(usuario.getEmail());
+                cargoField.setText(usuario.getCargo());
+                loginField.setText(usuario.getLogin());
+                senhaField.setText(usuario.getSenha());
+                
+                // Ir para o painel de cadastro
+                showPanel(cadastroPanel);
+                showToast("Usuário carregado para edição!", "success");
+            } else {
+                showToast("Usuário não encontrado!", "error");
+            }
+        });
+        
+        editButton.addActionListener(e -> {
+            String id = searchIdField.getText().trim();
+            if (id.isEmpty()) {
+                showToast("Digite um ID para editar", "warning");
+                return;
+            }
+            searchButton.doClick(); // Reutilizar lógica de busca
+        });
+        
+        deleteButton.addActionListener(e -> {
+            String id = searchIdField.getText().trim();
+            if (id.isEmpty()) {
+                showToast("Digite um ID para excluir", "warning");
+                return;
+            }
+            
+            Usuario usuario = usuarioDAO.findById(id);
+            if (usuario != null) {
+                int result = JOptionPane.showConfirmDialog(
+                    this,
+                    "Tem certeza que deseja excluir o usuário?\n\n" +
+                    "Nome: " + usuario.getNomeCompleto() + "\n" +
+                    "ID: " + id,
+                    "Confirmar Exclusão",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.WARNING_MESSAGE
+                );
+                
+                if (result == JOptionPane.YES_OPTION) {
+                    usuarioDAO.delete(id);
+                    refreshUserList();
+                    searchIdField.setText("");
+                    showToast("Usuário excluído com sucesso!", "success");
+                }
+            } else {
+                showToast("Usuário não encontrado!", "error");
+            }
+        });
+        
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setOpaque(false);
+        headerPanel.add(listTitlePanel, BorderLayout.NORTH);
+        headerPanel.add(searchPanel, BorderLayout.CENTER);
+        
+        listaPanel.add(headerPanel, BorderLayout.NORTH);
         
         String[] columnNames = {"ID", "Nome Completo", "Email", "CPF", "Login"};
         tableModel = new DefaultTableModel(columnNames, 0);
@@ -1008,5 +1244,131 @@ public class MainFrame extends JFrame {
             default: 
                 return FontIcon.of(FontAwesomeSolid.INFO_CIRCLE, 16, Color.WHITE);
         }
+    }
+
+    private JPanel createProjetosPanel() {
+        JPanel panel = new JPanel(new BorderLayout()) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                // Card background with shadow
+                g2d.setColor(new Color(0, 0, 0, 20));
+                g2d.fillRoundRect(12, 12, getWidth() - 24, getHeight() - 24, 15, 15);
+                
+                g2d.setColor(Color.WHITE);
+                g2d.fillRoundRect(10, 10, getWidth() - 20, getHeight() - 20, 15, 15);
+            }
+        };
+        panel.setOpaque(false);
+        panel.setBorder(new EmptyBorder(30, 30, 30, 30));
+
+        // Title
+        JPanel titlePanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        titlePanel.setOpaque(false);
+        
+        JLabel iconLabel = new JLabel();
+        FontIcon icon = FontIcon.of(FontAwesomeSolid.TASKS, 24, Color.decode("#0B192C"));
+        iconLabel.setIcon(icon);
+        
+        JLabel titleText = new JLabel("Gerenciamento de Projetos");
+        titleText.setFont(new Font("Segoe UI", Font.BOLD, 28));
+        titleText.setForeground(Color.decode("#0B192C"));
+        
+        titlePanel.add(iconLabel);
+        titlePanel.add(Box.createHorizontalStrut(15));
+        titlePanel.add(titleText);
+        titlePanel.setBorder(new EmptyBorder(0, 0, 30, 0));
+
+        // Content
+        JPanel contentPanel = new JPanel(new BorderLayout());
+        contentPanel.setOpaque(false);
+        
+        JLabel messageLabel = new JLabel("<html><div style='text-align: center;'>" +
+            "<h2>🚧 Funcionalidade em Desenvolvimento</h2>" +
+            "<p>O módulo de gerenciamento de projetos está sendo implementado.</p>" +
+            "<p>Em breve você poderá:</p>" +
+            "<ul>" +
+            "<li>✅ Criar novos projetos</li>" +
+            "<li>✅ Definir gerentes responsáveis</li>" +
+            "<li>✅ Acompanhar status e prazos</li>" +
+            "<li>✅ Gerenciar equipes por projeto</li>" +
+            "</ul>" +
+            "</div></html>");
+        messageLabel.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+        messageLabel.setForeground(Color.decode("#0B192C"));
+        messageLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        
+        contentPanel.add(messageLabel, BorderLayout.CENTER);
+        
+        panel.add(titlePanel, BorderLayout.NORTH);
+        panel.add(contentPanel, BorderLayout.CENTER);
+        
+        return panel;
+    }
+
+    private JPanel createEquipesPanel() {
+        JPanel panel = new JPanel(new BorderLayout()) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                // Card background with shadow
+                g2d.setColor(new Color(0, 0, 0, 20));
+                g2d.fillRoundRect(12, 12, getWidth() - 24, getHeight() - 24, 15, 15);
+                
+                g2d.setColor(Color.WHITE);
+                g2d.fillRoundRect(10, 10, getWidth() - 20, getHeight() - 20, 15, 15);
+            }
+        };
+        panel.setOpaque(false);
+        panel.setBorder(new EmptyBorder(30, 30, 30, 30));
+
+        // Title
+        JPanel titlePanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        titlePanel.setOpaque(false);
+        
+        JLabel iconLabel = new JLabel();
+        FontIcon icon = FontIcon.of(FontAwesomeSolid.USERS_COG, 24, Color.decode("#0B192C"));
+        iconLabel.setIcon(icon);
+        
+        JLabel titleText = new JLabel("Gerenciamento de Equipes");
+        titleText.setFont(new Font("Segoe UI", Font.BOLD, 28));
+        titleText.setForeground(Color.decode("#0B192C"));
+        
+        titlePanel.add(iconLabel);
+        titlePanel.add(Box.createHorizontalStrut(15));
+        titlePanel.add(titleText);
+        titlePanel.setBorder(new EmptyBorder(0, 0, 30, 0));
+
+        // Content
+        JPanel contentPanel = new JPanel(new BorderLayout());
+        contentPanel.setOpaque(false);
+        
+        JLabel messageLabel = new JLabel("<html><div style='text-align: center;'>" +
+            "<h2>🚧 Funcionalidade em Desenvolvimento</h2>" +
+            "<p>O módulo de gerenciamento de equipes está sendo implementado.</p>" +
+            "<p>Em breve você poderá:</p>" +
+            "<ul>" +
+            "<li>✅ Criar e gerenciar equipes</li>" +
+            "<li>✅ Adicionar/remover membros</li>" +
+            "<li>✅ Definir responsabilidades</li>" +
+            "<li>✅ Acompanhar performance</li>" +
+            "</ul>" +
+            "</div></html>");
+        messageLabel.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+        messageLabel.setForeground(Color.decode("#0B192C"));
+        messageLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        
+        contentPanel.add(messageLabel, BorderLayout.CENTER);
+        
+        panel.add(titlePanel, BorderLayout.NORTH);
+        panel.add(contentPanel, BorderLayout.CENTER);
+        
+        return panel;
     }
 }
