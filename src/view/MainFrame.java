@@ -32,6 +32,8 @@ import javax.swing.SwingConstants;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import javax.swing.Timer;
+import javax.swing.SwingUtilities;
+import javax.swing.JLayeredPane;
 import java.awt.FlowLayout;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
@@ -39,6 +41,7 @@ import java.awt.RenderingHints;
 import java.awt.GradientPaint;
 import java.awt.AlphaComposite;
 import java.awt.Component;
+import java.awt.Container;
 import java.awt.FontMetrics;
 import javax.swing.Box;
 
@@ -54,7 +57,8 @@ public class MainFrame extends JFrame {
     private JTable userTable;
     private DefaultTableModel tableModel;
     private JPanel contentPanel;
-    private JPanel toastPanel;
+    private JPanel toastOverlay;
+    private java.util.List<String> activeToasts = new java.util.ArrayList<>();
     private JPanel cadastroPanel;
     private JPanel listaPanel;
 
@@ -229,12 +233,13 @@ public class MainFrame extends JFrame {
 
     private JLabel createModernTitle() {
         JLabel titleLabel = new JLabel("<html><div style='text-align: center;'>" +
-            "<span style='font-size: 18px; font-weight: bold; color: #ECF0F1;'>SISTEMA DE</span><br>" +
+            "<span style='font-size: 18px; font-weight: bold; color: #FFFFFF;'>SISTEMA DE</span><br>" +
             "<span style='font-size: 20px; font-weight: bold; color: #FF6500;'>GESTÃO</span>" +
             "</div></html>");
         titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
         titleLabel.setBorder(new EmptyBorder(30, 20, 20, 20));
         titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        titleLabel.setForeground(Color.WHITE); // Garantir cor branca
         return titleLabel;
     }
 
@@ -256,15 +261,15 @@ public class MainFrame extends JFrame {
                     switch (name) {
                         case "cadastro":
                             button.addActionListener(e -> {
-                                clearFields();
-                                showPanel(cadastroPanel);
-                            });
+            clearFields();
+            showPanel(cadastroPanel);
+        });
                             break;
                         case "usuarios":
                             button.addActionListener(e -> {
-                                showPanel(listaPanel);
-                                refreshUserList();
-                            });
+            showPanel(listaPanel);
+            refreshUserList();
+        });
                             break;
                         case "projetos":
                             button.addActionListener(e -> showToast("Página de Gerenciar Projetos em construção!", "info"));
@@ -305,7 +310,7 @@ public class MainFrame extends JFrame {
                 g2d.fillRoundRect(10, 5, getWidth() - 20, getHeight() - 10, 12, 12);
                 
                 // Text and icon
-                g2d.setColor(Color.decode("#ECF0F1"));
+                g2d.setColor(Color.WHITE);
                 g2d.setFont(new Font("Segoe UI", Font.BOLD, 16));
                 
                 // Draw icon
@@ -389,7 +394,7 @@ public class MainFrame extends JFrame {
         buttonPanel.setBorder(new EmptyBorder(20, 0, 0, 0));
 
         JButton saveButton = createModernActionButton("💾", "Salvar", Color.decode("#2ECC71"));
-        JButton findButton = createModernActionButton("🔎", "Buscar", Color.decode("#3498DB"));
+        JButton findButton = createModernActionButton("🔍", "Buscar", Color.decode("#3498DB"));
         JButton updateButton = createModernActionButton("🔄", "Atualizar", Color.decode("#F1C40F"));
         JButton deleteButton = createModernActionButton("🗑️", "Excluir", Color.decode("#E74C3C"));
         
@@ -424,7 +429,7 @@ public class MainFrame extends JFrame {
         findButton.addActionListener(e -> {
             String id = idField.getText();
             if (id.isEmpty()) {
-                showToast("Por favor, insira um ID.", "warning");
+                showToast("Por favor, insira um ID para buscar", "warning");
                 return;
             }
             Usuario usuario = usuarioDAO.findById(id);
@@ -437,7 +442,7 @@ public class MainFrame extends JFrame {
                 senhaField.setText(usuario.getSenha());
                 showToast("Usuário encontrado com sucesso!", "info");
             } else {
-                showToast("Usuário não encontrado.", "error");
+                showToast("Usuário não encontrado", "error");
             }
         });
         
@@ -445,7 +450,7 @@ public class MainFrame extends JFrame {
             try {
                 String id = idField.getText();
                 if (id.isEmpty()) {
-                    showToast("Por favor, insira o ID do usuário para atualizar.", "warning");
+                    showToast("Por favor, insira o ID do usuário para atualizar", "warning");
                     return;
                 }
                 
@@ -470,12 +475,12 @@ public class MainFrame extends JFrame {
         deleteButton.addActionListener(e -> {
             String id = idField.getText();
             if (id.isEmpty()) {
-                showToast("Por favor, insira o ID do usuário para excluir.", "warning");
+                showToast("Por favor, insira o ID do usuário para excluir", "warning");
                 return;
             }
             
             usuarioDAO.delete(id);
-            showToast("Usuário excluído com sucesso!", "error");
+            showToast("Usuário excluído com sucesso!", "success");
             refreshUserList();
         });
         
@@ -596,10 +601,25 @@ public class MainFrame extends JFrame {
                     }
                     
                     JPopupMenu popupMenu = new JPopupMenu();
-                    JMenuItem editItem = new JMenuItem("✍️ Editar");
-                    JMenuItem deleteItem = new JMenuItem("🗑️ Excluir");
+                    popupMenu.setBackground(Color.WHITE);
+                    popupMenu.setBorder(new LineBorder(Color.decode("#BDC3C7"), 1, true));
+                    
+                    JMenuItem editItem = new JMenuItem("✏️ Editar Usuário");
+                    JMenuItem deleteItem = new JMenuItem("🗑️ Excluir Usuário");
+                    
+                    // Estilizar itens do menu
+                    editItem.setFont(new Font("Segoe UI", Font.BOLD, 13));
+                    editItem.setForeground(Color.decode("#0B192C"));
+                    editItem.setBackground(Color.WHITE);
+                    editItem.setBorder(new EmptyBorder(8, 15, 8, 15));
+                    
+                    deleteItem.setFont(new Font("Segoe UI", Font.BOLD, 13));
+                    deleteItem.setForeground(Color.decode("#E74C3C"));
+                    deleteItem.setBackground(Color.WHITE);
+                    deleteItem.setBorder(new EmptyBorder(8, 15, 8, 15));
 
                     popupMenu.add(editItem);
+                    popupMenu.addSeparator();
                     popupMenu.add(deleteItem);
 
                     editItem.addActionListener(action -> {
@@ -625,17 +645,31 @@ public class MainFrame extends JFrame {
                         int selectedRow = userTable.getSelectedRow();
                         if (selectedRow != -1) {
                             String id = (String) tableModel.getValueAt(selectedRow, 0);
-                            int confirm = JOptionPane.showConfirmDialog(
+                            String nome = (String) tableModel.getValueAt(selectedRow, 1);
+                            
+                            // Diálogo de confirmação mais elaborado
+                            String[] options = {"🗑️ Sim, Excluir", "❌ Cancelar"};
+                            int confirm = JOptionPane.showOptionDialog(
                                 MainFrame.this,
-                                "Tem certeza que deseja excluir o usuário com ID: " + id + "?",
-                                "Confirmar Exclusão",
-                                JOptionPane.YES_NO_OPTION);
+                                "⚠️ ATENÇÃO: Esta ação não pode ser desfeita!\n\n" +
+                                "Deseja realmente excluir o usuário?\n\n" +
+                                "👤 Nome: " + nome + "\n" +
+                                "🆔 ID: " + id,
+                                "🚨 Confirmar Exclusão de Usuário",
+                                JOptionPane.YES_NO_OPTION,
+                                JOptionPane.WARNING_MESSAGE,
+                                null,
+                                options,
+                                options[1]
+                            );
                             
                             if (confirm == JOptionPane.YES_OPTION) {
                                 UsuarioDAO usuarioDAO = new UsuarioDAO();
                                 usuarioDAO.delete(id);
                                 refreshUserList();
-                                showToast("Usuário excluído com sucesso!", "error");
+                                showToast("Usuário '" + nome + "' excluído com sucesso!", "success");
+                            } else {
+                                showToast("Exclusão cancelada pelo usuário", "info");
                             }
                         }
                     });
@@ -687,11 +721,54 @@ public class MainFrame extends JFrame {
     
 
     private void showToast(String message, String type) {
-        if (toastPanel != null) {
-            this.remove(toastPanel);
+        // Evitar toasts duplicados
+        String toastKey = type + ":" + message;
+        if (activeToasts.contains(toastKey)) {
+            return;
         }
+        activeToasts.add(toastKey);
+        
+        // Usar SwingUtilities para thread safety
+        SwingUtilities.invokeLater(() -> {
+            createToastOverlay();
+            
+            // Criar toast individual
+            JPanel singleToast = createSingleToast(message, type, toastKey);
+            toastOverlay.add(singleToast);
+            
+            // Revalidar apenas o overlay
+            toastOverlay.revalidate();
+            toastOverlay.repaint();
+            
+            // Timer para remover o toast (não repetitivo)
+            Timer removeTimer = new Timer(3000, null);
+            removeTimer.addActionListener(e -> {
+                removeTimer.stop();
+                removeToast(singleToast, toastKey);
+            });
+            removeTimer.start();
+        });
+    }
 
-        // Modern toast container with shadow and rounded corners
+    private void createToastOverlay() {
+        if (toastOverlay == null) {
+            toastOverlay = new JPanel();
+            toastOverlay.setLayout(new BoxLayout(toastOverlay, BoxLayout.Y_AXIS));
+            toastOverlay.setOpaque(false);
+            toastOverlay.setBounds(0, 0, getWidth(), getHeight());
+            
+            // Usar JLayeredPane para overlay
+            JLayeredPane layeredPane = getLayeredPane();
+            layeredPane.add(toastOverlay, JLayeredPane.POPUP_LAYER);
+        }
+        
+        // Atualizar posição do overlay
+        if (toastOverlay != null) {
+            toastOverlay.setBounds(getWidth() - 370, 20, 350, getHeight() - 40);
+        }
+    }
+
+    private JPanel createSingleToast(String message, String type, String toastKey) {
         JPanel toastWrapper = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
@@ -699,109 +776,97 @@ public class MainFrame extends JFrame {
                 Graphics2D g2d = (Graphics2D) g;
                 g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 
-                // Shadow effect
-                g2d.setColor(new Color(0, 0, 0, 30));
-                g2d.fillRoundRect(2, 2, getWidth() - 4, getHeight() - 4, 15, 15);
+                // Fundo transparente com sombra
+                g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.95f));
                 
-                // Main background
+                // Sombra
+                g2d.setColor(new Color(0, 0, 0, 50));
+                g2d.fillRoundRect(3, 3, getWidth() - 6, getHeight() - 6, 15, 15);
+                
+                // Fundo principal
                 Color backgroundColor = getToastColor(type);
                 g2d.setColor(backgroundColor);
-                g2d.fillRoundRect(0, 0, getWidth() - 4, getHeight() - 4, 15, 15);
+                g2d.fillRoundRect(0, 0, getWidth() - 6, getHeight() - 6, 15, 15);
+                
+                // Borda sutil
+                g2d.setColor(backgroundColor.brighter());
+                g2d.drawRoundRect(0, 0, getWidth() - 7, getHeight() - 7, 15, 15);
             }
         };
+        
         toastWrapper.setLayout(new BorderLayout());
         toastWrapper.setOpaque(false);
-        toastWrapper.setBorder(new EmptyBorder(15, 25, 15, 25));
-        toastWrapper.setPreferredSize(new Dimension(400, 70));
+        toastWrapper.setPreferredSize(new Dimension(350, 60));
+        toastWrapper.setMaximumSize(new Dimension(350, 60));
+        toastWrapper.setBorder(new EmptyBorder(12, 20, 12, 20));
         
-        // Message content
-        JPanel messagePanel = new JPanel(new BorderLayout(15, 0));
-        messagePanel.setOpaque(false);
+        // Conteúdo do toast
+        JPanel contentPanel = new JPanel(new BorderLayout(12, 0));
+        contentPanel.setOpaque(false);
         
+        // Ícone
         String iconText = getToastIcon(type);
         JLabel iconLabel = new JLabel(iconText);
-        iconLabel.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        iconLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
         iconLabel.setForeground(Color.WHITE);
-        messagePanel.add(iconLabel, BorderLayout.WEST);
+        contentPanel.add(iconLabel, BorderLayout.WEST);
         
+        // Mensagem
         JLabel messageLabel = new JLabel(message);
-        messageLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        messageLabel.setFont(new Font("Segoe UI", Font.BOLD, 13));
         messageLabel.setForeground(Color.WHITE);
-        messagePanel.add(messageLabel, BorderLayout.CENTER);
+        contentPanel.add(messageLabel, BorderLayout.CENTER);
         
-        // Close button
-        JLabel closeLabel = new JLabel("✕");
-        closeLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        closeLabel.setForeground(Color.WHITE);
-        closeLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        closeLabel.addMouseListener(new MouseAdapter() {
+        // Botão fechar
+        JLabel closeButton = new JLabel("X");
+        closeButton.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        closeButton.setForeground(Color.WHITE);
+        closeButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        closeButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                MainFrame.this.remove(toastPanel);
-                MainFrame.this.revalidate();
-                MainFrame.this.repaint();
+                SwingUtilities.invokeLater(() -> removeToast(toastWrapper, toastKey));
             }
             @Override
             public void mouseEntered(MouseEvent e) {
-                closeLabel.setForeground(Color.LIGHT_GRAY);
+                closeButton.setForeground(Color.LIGHT_GRAY);
             }
             @Override
             public void mouseExited(MouseEvent e) {
-                closeLabel.setForeground(Color.WHITE);
+                closeButton.setForeground(Color.WHITE);
             }
         });
-        messagePanel.add(closeLabel, BorderLayout.EAST);
+        contentPanel.add(closeButton, BorderLayout.EAST);
         
-        toastWrapper.add(messagePanel, BorderLayout.CENTER);
+        toastWrapper.add(contentPanel, BorderLayout.CENTER);
+        
+        return toastWrapper;
+    }
 
-        // Progress bar
-        JPanel progressBar = new JPanel() {
-            @Override
-            protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-                Graphics2D g2d = (Graphics2D) g;
-                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+    private void removeToast(JPanel toastWrapper, String toastKey) {
+        SwingUtilities.invokeLater(() -> {
+            if (toastOverlay != null && toastWrapper.getParent() != null) {
+                // Remover da lista de toasts ativos
+                activeToasts.remove(toastKey);
                 
-                Color progressColor = getToastColor(type).darker();
-                g2d.setColor(progressColor);
-                g2d.fillRoundRect(0, 0, getWidth(), getHeight(), 5, 5);
-            }
-        };
-        progressBar.setPreferredSize(new Dimension(0, 4));
-        progressBar.setOpaque(false);
-        toastWrapper.add(progressBar, BorderLayout.SOUTH);
-
-        // Container for positioning
-        toastPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        toastPanel.setOpaque(false);
-        toastPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
-        toastPanel.add(toastWrapper);
-        
-        this.add(toastPanel, BorderLayout.SOUTH);
-        this.revalidate();
-        this.repaint();
-        
-        // Animation timer
-        final int duration = 4000;
-        final long startTime = System.currentTimeMillis();
-        Timer progressTimer = new Timer(50, new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                long elapsedTime = System.currentTimeMillis() - startTime;
-                if (elapsedTime >= duration) {
-                    ((Timer) e.getSource()).stop();
-                    MainFrame.this.remove(toastPanel);
-                    MainFrame.this.revalidate();
-                    MainFrame.this.repaint();
+                // Remover o toast
+                toastOverlay.remove(toastWrapper);
+                
+                // Se não há mais toasts, remover o overlay
+                if (toastOverlay.getComponentCount() == 0) {
+                    getLayeredPane().remove(toastOverlay);
+                    toastOverlay = null;
+                }
+                
+                // Revalidar apenas se necessário
+                if (toastOverlay != null) {
+                    toastOverlay.revalidate();
+                    toastOverlay.repaint();
                 } else {
-                    int width = (int) (toastWrapper.getWidth() * (1 - (double) elapsedTime / duration));
-                    progressBar.setPreferredSize(new Dimension(width, 4));
-                    progressBar.revalidate();
+                    getLayeredPane().repaint();
                 }
             }
         });
-        progressTimer.setRepeats(true);
-        progressTimer.start();
     }
 
     private Color getToastColor(String type) {
@@ -816,11 +881,11 @@ public class MainFrame extends JFrame {
 
     private String getToastIcon(String type) {
         switch (type) {
-            case "success": return "✓";
-            case "error": return "✕";
-            case "warning": return "⚠";
+            case "success": return "✅";
+            case "error": return "❌";
+            case "warning": return "⚠️";
             case "info":
-            default: return "ℹ";
+            default: return "ℹ️";
         }
     }
 }
