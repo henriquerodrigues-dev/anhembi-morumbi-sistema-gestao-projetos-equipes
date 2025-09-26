@@ -34,6 +34,7 @@ import javax.swing.event.DocumentListener;
 import javax.swing.JComboBox;
 import com.toedter.calendar.JDateChooser;
 import java.text.SimpleDateFormat;
+import java.util.Locale;
 import java.awt.Cursor;
 import javax.swing.JPopupMenu;
 import javax.swing.JMenuItem;
@@ -77,7 +78,8 @@ public class MainFrame extends JFrame {
     private JDateChooser dataInicioChooser;
     private JDateChooser dataTerminoChooser;
     private JComboBox<String> statusComboBox;
-    private JComboBox<String> gerenteComboBox;
+    private JTextField gerenteSearchField;
+    private JPopupMenu gerentePopup;
     private JTable userTable;
     private DefaultTableModel tableModel;
     private JPanel contentPanel;
@@ -839,12 +841,13 @@ public class MainFrame extends JFrame {
         searchPanel.setOpaque(false);
         searchPanel.setBorder(new EmptyBorder(0, 0, 20, 0));
         
-        JLabel searchLabel = new JLabel("Buscar por ID:");
+        JLabel searchLabel = new JLabel("Buscar usuário:");
         searchLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
         searchLabel.setForeground(Color.decode("#0B192C"));
         
-        JTextField searchIdField = createStyledTextField();
-        searchIdField.setPreferredSize(new Dimension(200, 35));
+        JTextField searchField = createStyledTextField();
+        searchField.setPreferredSize(new Dimension(200, 35));
+        searchField.setToolTipText("Digite nome, email, CPF ou login para buscar...");
         
         JButton searchButton = createIconActionButton(FontAwesomeSolid.SEARCH, "Buscar", Color.decode("#3498DB"));
         JButton editButton = createIconActionButton(FontAwesomeSolid.EDIT, "Editar", Color.decode("#F39C12"));
@@ -852,7 +855,7 @@ public class MainFrame extends JFrame {
         
         searchPanel.add(searchLabel);
         searchPanel.add(Box.createHorizontalStrut(10));
-        searchPanel.add(searchIdField);
+        searchPanel.add(searchField);
         searchPanel.add(Box.createHorizontalStrut(10));
         searchPanel.add(searchButton);
         searchPanel.add(Box.createHorizontalStrut(5));
@@ -862,15 +865,16 @@ public class MainFrame extends JFrame {
         
         // Ações dos botões
         searchButton.addActionListener(e -> {
-            String id = searchIdField.getText().trim();
-            if (id.isEmpty()) {
-                showToast("Digite um ID para buscar", "warning");
+            String searchTerm = searchField.getText().trim();
+            if (searchTerm.isEmpty()) {
+                showToast("Digite algo para buscar", "warning");
                 return;
             }
             
-            Usuario usuario = usuarioDAO.findById(id);
+            Usuario usuario = buscarUsuarioUniversal(searchTerm);
             if (usuario != null) {
                 // Preencher campos no formulário de cadastro
+                idField.setText(usuario.getId());
                 nomeField.setText(usuario.getNomeCompleto());
                 cpfField.setText(ValidadorUtil.formatarCPF(usuario.getCpf()));
                 emailField.setText(usuario.getEmail());
@@ -887,22 +891,22 @@ public class MainFrame extends JFrame {
         });
         
         editButton.addActionListener(e -> {
-            String id = searchIdField.getText().trim();
-            if (id.isEmpty()) {
-                showToast("Digite um ID para editar", "warning");
+            String searchTerm = searchField.getText().trim();
+            if (searchTerm.isEmpty()) {
+                showToast("Digite algo para editar", "warning");
                 return;
             }
             searchButton.doClick(); // Reutilizar lógica de busca
         });
         
         deleteButton.addActionListener(e -> {
-            String id = searchIdField.getText().trim();
-            if (id.isEmpty()) {
-                showToast("Digite um ID para excluir", "warning");
+            String searchTerm = searchField.getText().trim();
+            if (searchTerm.isEmpty()) {
+                showToast("Digite algo para excluir", "warning");
                 return;
             }
             
-            Usuario usuario = usuarioDAO.findById(id);
+            Usuario usuario = buscarUsuarioUniversal(searchTerm);
             if (usuario != null) {
                 String[] options = {"Sim, Excluir", "Cancelar"};
                 int result = JOptionPane.showOptionDialog(
@@ -910,7 +914,7 @@ public class MainFrame extends JFrame {
                     "ATENÇÃO: Esta ação não pode ser desfeita!\n\n" +
                     "Deseja realmente excluir o usuário?\n\n" +
                     "Nome: " + usuario.getNomeCompleto() + "\n" +
-                    "ID: " + id,
+                    "ID: " + usuario.getId(),
                     "Confirmar Exclusão de Usuário",
                     JOptionPane.YES_NO_OPTION,
                     JOptionPane.WARNING_MESSAGE,
@@ -920,9 +924,9 @@ public class MainFrame extends JFrame {
                 );
                 
                 if (result == JOptionPane.YES_OPTION) {
-                    usuarioDAO.delete(id);
+                    usuarioDAO.delete(usuario.getId());
                     refreshUserListRealTime();
-                    searchIdField.setText("");
+                    searchField.setText("");
                     showToast("Usuário excluído com sucesso!", "success");
                 }
             } else {
@@ -1332,11 +1336,15 @@ public class MainFrame extends JFrame {
         dataInicioChooser.setDateFormatString("dd/MM/yyyy");
         dataInicioChooser.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         dataInicioChooser.setPreferredSize(new Dimension(0, 35));
+        dataInicioChooser.setLocale(new Locale("pt", "BR"));
+        dataInicioChooser.getJCalendar().setLocale(new Locale("pt", "BR"));
         
         dataTerminoChooser = new JDateChooser();
         dataTerminoChooser.setDateFormatString("dd/MM/yyyy");
         dataTerminoChooser.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         dataTerminoChooser.setPreferredSize(new Dimension(0, 35));
+        dataTerminoChooser.setLocale(new Locale("pt", "BR"));
+        dataTerminoChooser.getJCalendar().setLocale(new Locale("pt", "BR"));
         
         // Status combo box with default options
         String[] statusOptions = {"", "Pendente", "Em Andamento", "Concluído", "Cancelado", "Pausado"};
@@ -1345,12 +1353,11 @@ public class MainFrame extends JFrame {
         statusComboBox.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         statusComboBox.setPreferredSize(new Dimension(0, 35));
         
-        // Manager combo box
-        gerenteComboBox = new JComboBox<>();
-        gerenteComboBox.setEditable(true);
-        gerenteComboBox.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        gerenteComboBox.setPreferredSize(new Dimension(0, 35));
-        loadManagerOptions();
+        // Manager search field
+        gerenteSearchField = createStyledTextField();
+        gerenteSearchField.setPreferredSize(new Dimension(0, 35));
+        gerenteSearchField.setToolTipText("Digite o nome do gerente para buscar...");
+        setupGerenteSearch();
         
         formPanel.add(createFieldLabel("ID do Projeto (para edição):", FontAwesomeSolid.ID_CARD));
         formPanel.add(projetoIdField);
@@ -1365,16 +1372,16 @@ public class MainFrame extends JFrame {
         formPanel.add(createFieldLabel("Status:", FontAwesomeSolid.TASKS));
         formPanel.add(statusComboBox);
         formPanel.add(createFieldLabel("Gerente Responsável:", FontAwesomeSolid.USER_TIE));
-        formPanel.add(gerenteComboBox);
+        formPanel.add(gerenteSearchField);
         
         // Button panel
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 0));
         buttonPanel.setOpaque(false);
         buttonPanel.setBorder(new EmptyBorder(15, 0, 0, 0));
 
-        JButton salvarProjetoBtn = createIconActionButton(FontAwesomeSolid.SAVE, "Salvar", Color.decode("#27AE60"));
+        JButton salvarProjetoBtn = createIconActionButton(FontAwesomeSolid.PLUS, "Criar Novo", Color.decode("#27AE60"));
         JButton buscarProjetoBtn = createIconActionButton(FontAwesomeSolid.SEARCH, "Buscar", Color.decode("#3498DB"));
-        JButton atualizarProjetoBtn = createIconActionButton(FontAwesomeSolid.EDIT, "Atualizar", Color.decode("#F39C12"));
+        JButton atualizarProjetoBtn = createIconActionButton(FontAwesomeSolid.EDIT, "Editar/Salvar", Color.decode("#F39C12"));
         JButton excluirProjetoBtn = createIconActionButton(FontAwesomeSolid.TRASH, "Excluir", Color.decode("#E74C3C"));
         JButton limparProjetoBtn = createIconActionButton(FontAwesomeSolid.ERASER, "Limpar", Color.decode("#95A5A6"));
 
@@ -1400,7 +1407,7 @@ public class MainFrame extends JFrame {
             dataInicioChooser.setDate(null);
             dataTerminoChooser.setDate(null);
             statusComboBox.setSelectedIndex(0);
-            gerenteComboBox.setSelectedIndex(0);
+            gerenteSearchField.setText("");
         });
         
         formWrapper.add(formTitle, BorderLayout.NORTH);
@@ -1445,8 +1452,19 @@ public class MainFrame extends JFrame {
         // Add context menu to table
         addProjetoContextMenu(projetoTable, projetoTableModel);
         
+        // Refresh button
+        JPanel refreshPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        refreshPanel.setOpaque(false);
+        refreshPanel.setBorder(new EmptyBorder(10, 0, 0, 0));
+        
+        JButton refreshProjetosBtn = createIconActionButton(FontAwesomeSolid.SYNC_ALT, "Atualizar Lista", Color.decode("#3498DB"));
+        refreshPanel.add(refreshProjetosBtn);
+        
+        refreshProjetosBtn.addActionListener(e -> refreshProjetoList(projetoTableModel));
+        
         tableWrapper.add(tableTitle, BorderLayout.NORTH);
         tableWrapper.add(projetoScrollPane, BorderLayout.CENTER);
+        tableWrapper.add(refreshPanel, BorderLayout.SOUTH);
         
         // Load initial data
         refreshProjetoList(projetoTableModel);
@@ -1454,47 +1472,6 @@ public class MainFrame extends JFrame {
         return tableWrapper;
     }
 
-    private void loadManagerOptions() {
-        gerenteComboBox.removeAllItems();
-        gerenteComboBox.addItem(""); // Opção vazia
-        
-        List<Usuario> usuarios = usuarioDAO.findAll();
-        for (Usuario usuario : usuarios) {
-            gerenteComboBox.addItem(usuario.getNomeCompleto() + " (ID: " + usuario.getId() + ")");
-        }
-    }
-
-    private String getManagerIdFromComboBox() {
-        String selected = (String) gerenteComboBox.getSelectedItem();
-        if (selected == null || selected.trim().isEmpty()) {
-            return "";
-        }
-        
-        // Extract ID from "Nome (ID: 123)" format
-        int idStart = selected.lastIndexOf("ID: ");
-        int idEnd = selected.lastIndexOf(")");
-        
-        if (idStart != -1 && idEnd != -1) {
-            return selected.substring(idStart + 4, idEnd);
-        }
-        
-        return "";
-    }
-
-    private void setManagerInComboBox(String managerId) {
-        if (managerId == null || managerId.trim().isEmpty()) {
-            gerenteComboBox.setSelectedIndex(0);
-            return;
-        }
-        
-        for (int i = 0; i < gerenteComboBox.getItemCount(); i++) {
-            String item = (String) gerenteComboBox.getItemAt(i);
-            if (item.contains("ID: " + managerId + ")")) {
-                gerenteComboBox.setSelectedIndex(i);
-                return;
-            }
-        }
-    }
 
     private void addProjetoContextMenu(JTable table, DefaultTableModel tableModel) {
         JPopupMenu contextMenu = new JPopupMenu();
@@ -1517,6 +1494,36 @@ public class MainFrame extends JFrame {
             if (selectedRow != -1) {
                 String projetoId = (String) tableModel.getValueAt(selectedRow, 0);
                 excluirProjetoModerno(createTextField(projetoId));
+            }
+        });
+        
+        contextMenu.add(editItem);
+        contextMenu.add(deleteItem);
+        
+        table.setComponentPopupMenu(contextMenu);
+    }
+
+    private void addEquipeContextMenu(JTable table, DefaultTableModel tableModel) {
+        JPopupMenu contextMenu = new JPopupMenu();
+        
+        JMenuItem editItem = new JMenuItem("Editar Equipe");
+        editItem.setIcon(FontIcon.of(FontAwesomeSolid.EDIT, 12, Color.decode("#F39C12")));
+        editItem.addActionListener(e -> {
+            int selectedRow = table.getSelectedRow();
+            if (selectedRow != -1) {
+                String equipeId = (String) tableModel.getValueAt(selectedRow, 0);
+                // Buscar e carregar equipe nos campos
+                buscarEquipeParaEdicao(equipeId);
+            }
+        });
+        
+        JMenuItem deleteItem = new JMenuItem("Excluir Equipe");
+        deleteItem.setIcon(FontIcon.of(FontAwesomeSolid.TRASH, 12, Color.decode("#E74C3C")));
+        deleteItem.addActionListener(e -> {
+            int selectedRow = table.getSelectedRow();
+            if (selectedRow != -1) {
+                String equipeId = (String) tableModel.getValueAt(selectedRow, 0);
+                excluirEquipeModerno(createTextField(equipeId));
             }
         });
         
@@ -1561,7 +1568,7 @@ public class MainFrame extends JFrame {
             return;
         }
         
-        String gerenteId = getManagerIdFromComboBox();
+        String gerenteId = getManagerIdFromSearchField();
         
         controller.ProjetoController projetoController = new controller.ProjetoController();
         String erro = projetoController.criarProjeto(
@@ -1577,7 +1584,7 @@ public class MainFrame extends JFrame {
             dataInicioChooser.setDate(null);
             dataTerminoChooser.setDate(null);
             statusComboBox.setSelectedIndex(0);
-            gerenteComboBox.setSelectedIndex(0);
+            gerenteSearchField.setText("");
             // Atualizar lista em tempo real
             refreshProjetoListRealTime();
         } else {
@@ -1613,7 +1620,7 @@ public class MainFrame extends JFrame {
             
             // Set manager
             if (projeto.getGerenteResponsavel() != null) {
-                setManagerInComboBox(projeto.getGerenteResponsavel().getId());
+                setManagerInSearchField(projeto.getGerenteResponsavel().getId());
             }
             
             showToast("Projeto encontrado!", "success");
@@ -1637,7 +1644,7 @@ public class MainFrame extends JFrame {
         String status = statusComboBox.getSelectedItem() != null ? 
                        statusComboBox.getSelectedItem().toString().trim() : "";
         
-        String gerenteId = getManagerIdFromComboBox();
+        String gerenteId = getManagerIdFromSearchField();
         
         controller.ProjetoController projetoController = new controller.ProjetoController();
         String erro = projetoController.atualizarProjeto(
@@ -1987,12 +1994,31 @@ public class MainFrame extends JFrame {
         equipeScrollPane.setBorder(new LineBorder(Color.decode("#BDC3C7"), 1));
         equipeScrollPane.setPreferredSize(new Dimension(800, 250));
         
+        // Add context menu to table
+        addEquipeContextMenu(equipeTable, equipeTableModel);
+        
         // Management panel for members
         JPanel memberPanel = createMemberManagementPanel();
         
+        // Refresh button
+        JPanel refreshPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        refreshPanel.setOpaque(false);
+        refreshPanel.setBorder(new EmptyBorder(10, 0, 0, 0));
+        
+        JButton refreshEquipesBtn = createIconActionButton(FontAwesomeSolid.SYNC_ALT, "Atualizar Lista", Color.decode("#3498DB"));
+        refreshPanel.add(refreshEquipesBtn);
+        
+        refreshEquipesBtn.addActionListener(e -> refreshEquipeList(equipeTableModel));
+        
+        // Panel structure
+        JPanel bottomPanel = new JPanel(new BorderLayout());
+        bottomPanel.setOpaque(false);
+        bottomPanel.add(memberPanel, BorderLayout.NORTH);
+        bottomPanel.add(refreshPanel, BorderLayout.SOUTH);
+        
         tableWrapper.add(tableTitle, BorderLayout.NORTH);
         tableWrapper.add(equipeScrollPane, BorderLayout.CENTER);
-        tableWrapper.add(memberPanel, BorderLayout.SOUTH);
+        tableWrapper.add(bottomPanel, BorderLayout.SOUTH);
         
         // Load initial data
         refreshEquipeList(equipeTableModel);
@@ -2021,11 +2047,12 @@ public class MainFrame extends JFrame {
         JTextField memberEquipeIdField = createStyledTextField();
         memberEquipeIdField.setPreferredSize(new Dimension(120, 30));
         
-        JLabel usuarioIdLabel = new JLabel("ID do Usuário:");
+        JLabel usuarioIdLabel = new JLabel("Buscar Usuário:");
         usuarioIdLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
         
-        JTextField memberUsuarioIdField = createStyledTextField();
-        memberUsuarioIdField.setPreferredSize(new Dimension(120, 30));
+        JTextField memberUsuarioSearchField = createStyledTextField();
+        memberUsuarioSearchField.setPreferredSize(new Dimension(120, 30));
+        memberUsuarioSearchField.setToolTipText("Digite o nome do usuário...");
         
         JButton adicionarMembroBtn = createIconActionButton(FontAwesomeSolid.USER_PLUS, "Adicionar", Color.decode("#27AE60"));
         JButton removerMembroBtn = createIconActionButton(FontAwesomeSolid.USER_MINUS, "Remover", Color.decode("#E74C3C"));
@@ -2033,18 +2060,24 @@ public class MainFrame extends JFrame {
         memberForm.add(equipeIdLabel);
         memberForm.add(memberEquipeIdField);
         memberForm.add(usuarioIdLabel);
-        memberForm.add(memberUsuarioIdField);
+        memberForm.add(memberUsuarioSearchField);
         memberForm.add(adicionarMembroBtn);
         memberForm.add(removerMembroBtn);
         
         // Button actions
         adicionarMembroBtn.addActionListener(e -> {
+            String usuarioId = getUserIdFromMemberSearch(memberUsuarioSearchField.getText());
+            if (usuarioId.isEmpty()) {
+                showToast("Usuário não encontrado! Digite um nome válido.", "error");
+                return;
+            }
+            
             controller.EquipeController equipeController = new controller.EquipeController();
-            String erro = equipeController.adicionarMembro(memberEquipeIdField.getText(), memberUsuarioIdField.getText());
+            String erro = equipeController.adicionarMembro(memberEquipeIdField.getText(), usuarioId);
             if (erro == null) {
                 showToast("Membro adicionado com sucesso!", "success");
                 memberEquipeIdField.setText("");
-                memberUsuarioIdField.setText("");
+                memberUsuarioSearchField.setText("");
                 refreshEquipeListRealTime();
             } else {
                 showToast(erro, "error");
@@ -2052,12 +2085,18 @@ public class MainFrame extends JFrame {
         });
         
         removerMembroBtn.addActionListener(e -> {
+            String usuarioId = getUserIdFromMemberSearch(memberUsuarioSearchField.getText());
+            if (usuarioId.isEmpty()) {
+                showToast("Usuário não encontrado! Digite um nome válido.", "error");
+                return;
+            }
+            
             controller.EquipeController equipeController = new controller.EquipeController();
-            String erro = equipeController.removerMembro(memberEquipeIdField.getText(), memberUsuarioIdField.getText());
+            String erro = equipeController.removerMembro(memberEquipeIdField.getText(), usuarioId);
             if (erro == null) {
                 showToast("Membro removido com sucesso!", "success");
                 memberEquipeIdField.setText("");
-                memberUsuarioIdField.setText("");
+                memberUsuarioSearchField.setText("");
                 refreshEquipeListRealTime();
             } else {
                 showToast(erro, "error");
@@ -2194,5 +2233,159 @@ public class MainFrame extends JFrame {
         SwingUtilities.invokeLater(() -> {
             refreshUserList();
         });
+    }
+
+    // Método de busca universal de usuários
+    private Usuario buscarUsuarioUniversal(String searchTerm) {
+        List<Usuario> usuarios = usuarioDAO.findAll();
+        
+        for (Usuario usuario : usuarios) {
+            // Busca por ID exato
+            if (usuario.getId().equals(searchTerm)) {
+                return usuario;
+            }
+            
+            // Busca aproximada em nome, email, CPF e login
+            String termo = searchTerm.toLowerCase();
+            if (usuario.getNomeCompleto().toLowerCase().contains(termo) ||
+                usuario.getEmail().toLowerCase().contains(termo) ||
+                usuario.getCpf().replaceAll("[^0-9]", "").contains(termo.replaceAll("[^0-9]", "")) ||
+                usuario.getLogin().toLowerCase().contains(termo)) {
+                return usuario;
+            }
+        }
+        
+        return null;
+    }
+
+    // Método para buscar equipe para edição
+    private void buscarEquipeParaEdicao(String equipeId) {
+        // Implementar busca de equipe e preencher campos
+        // Por enquanto, vamos usar um toast para indicar a funcionalidade
+        showToast("Funcionalidade de edição de equipe em desenvolvimento", "info");
+    }
+
+    // Método moderno para excluir equipe
+    private void excluirEquipeModerno(JTextField idField) {
+        if (idField.getText().trim().isEmpty()) {
+            showToast("ID é obrigatório para exclusão!", "error");
+            return;
+        }
+        
+        String[] options = {"Sim, Excluir", "Cancelar"};
+        int result = JOptionPane.showOptionDialog(
+            this,
+            "ATENÇÃO: Esta ação não pode ser desfeita!\n\n" +
+            "Deseja realmente excluir esta equipe?\n\n" +
+            "ID: " + idField.getText(),
+            "Confirmar Exclusão de Equipe",
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.WARNING_MESSAGE,
+            null,
+            options,
+            options[1]
+        );
+        
+        if (result == JOptionPane.YES_OPTION) {
+            controller.EquipeController equipeController = new controller.EquipeController();
+            String erro = equipeController.excluirEquipe(idField.getText());
+            if (erro == null) {
+                showToast("Equipe excluída com sucesso!", "success");
+                idField.setText("");
+                refreshEquipeListRealTime();
+            } else {
+                showToast(erro, "error");
+            }
+        }
+    }
+
+    // Configurar busca de gerente em tempo real
+    private void setupGerenteSearch() {
+        gerentePopup = new JPopupMenu();
+        
+        gerenteSearchField.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) { searchGerente(); }
+            @Override
+            public void removeUpdate(DocumentEvent e) { searchGerente(); }
+            @Override
+            public void changedUpdate(DocumentEvent e) { searchGerente(); }
+        });
+    }
+
+    private void searchGerente() {
+        String searchTerm = gerenteSearchField.getText().toLowerCase().trim();
+        
+        gerentePopup.removeAll();
+        
+        if (searchTerm.length() < 2) {
+            gerentePopup.setVisible(false);
+            return;
+        }
+        
+        List<Usuario> usuarios = usuarioDAO.findAll();
+        boolean found = false;
+        
+        for (Usuario usuario : usuarios) {
+            if (usuario.getNomeCompleto().toLowerCase().contains(searchTerm)) {
+                JMenuItem item = new JMenuItem(usuario.getNomeCompleto() + " (ID: " + usuario.getId() + ")");
+                item.addActionListener(e -> {
+                    gerenteSearchField.setText(usuario.getNomeCompleto() + " (ID: " + usuario.getId() + ")");
+                    gerentePopup.setVisible(false);
+                });
+                gerentePopup.add(item);
+                found = true;
+                
+                // Limitar a 5 resultados
+                if (gerentePopup.getComponentCount() >= 5) break;
+            }
+        }
+        
+        if (found) {
+            gerentePopup.show(gerenteSearchField, 0, gerenteSearchField.getHeight());
+        } else {
+            gerentePopup.setVisible(false);
+        }
+    }
+
+    private String getManagerIdFromSearchField() {
+        String text = gerenteSearchField.getText();
+        if (text.contains("(ID: ")) {
+            int start = text.lastIndexOf("(ID: ") + 5;
+            int end = text.lastIndexOf(")");
+            if (start > 4 && end > start) {
+                return text.substring(start, end);
+            }
+        }
+        return "";
+    }
+
+    private void setManagerInSearchField(String managerId) {
+        if (managerId == null || managerId.trim().isEmpty()) {
+            gerenteSearchField.setText("");
+            return;
+        }
+        
+        List<Usuario> usuarios = usuarioDAO.findAll();
+        for (Usuario usuario : usuarios) {
+            if (usuario.getId().equals(managerId)) {
+                gerenteSearchField.setText(usuario.getNomeCompleto() + " (ID: " + usuario.getId() + ")");
+                return;
+            }
+        }
+    }
+
+    private String getUserIdFromMemberSearch(String searchText) {
+        if (searchText == null || searchText.trim().isEmpty()) {
+            return "";
+        }
+        
+        // Buscar usuário pelo nome
+        Usuario usuario = buscarUsuarioUniversal(searchText.trim());
+        if (usuario != null) {
+            return usuario.getId();
+        }
+        
+        return "";
     }
 }
