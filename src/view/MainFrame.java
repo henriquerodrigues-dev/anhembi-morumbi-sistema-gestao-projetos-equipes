@@ -279,57 +279,45 @@ public class MainFrame extends JFrame {
     }
 
     private JButton createCompactSidebarButton(Ikon iconCode, String text) {
-        JButton button = new JButton();
-        button.setLayout(new BorderLayout(10, 0));
-        
-        // Create Ikonli icon
-        JLabel iconLabel = new JLabel();
-        FontIcon icon = FontIcon.of(iconCode, 18, Color.WHITE);
-        iconLabel.setIcon(icon);
-        
-        // Create text label
-        JLabel textLabel = new JLabel(text);
-        textLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        textLabel.setForeground(Color.WHITE);
-        
-        // Add components to button
-        button.add(iconLabel, BorderLayout.WEST);
-        button.add(textLabel, BorderLayout.CENTER);
+        JButton button = new JButton() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                // Background
+                if (getModel().isPressed()) {
+                    g2d.setColor(Color.decode("#FF6500"));
+                } else if (getModel().isRollover()) {
+                    g2d.setColor(new Color(255, 101, 0, 80));
+                } else {
+                    g2d.setColor(new Color(255, 255, 255, 0));
+                }
+                g2d.fillRoundRect(5, 2, getWidth() - 10, getHeight() - 4, 8, 8);
+                
+                // Icon
+                FontIcon icon = FontIcon.of(iconCode, 16, 
+                    getModel().isRollover() ? Color.decode("#FF6500") : Color.WHITE);
+                icon.paintIcon(this, g2d, 15, (getHeight() - 16) / 2);
+                
+                // Text
+                g2d.setColor(getModel().isRollover() ? Color.decode("#FF6500") : Color.WHITE);
+                g2d.setFont(new Font("Segoe UI", Font.BOLD, 13));
+                FontMetrics fm = g2d.getFontMetrics();
+                int textY = (getHeight() + fm.getAscent()) / 2 - 2;
+                g2d.drawString(text, 40, textY);
+            }
+        };
         
         // Style button
-        button.setPreferredSize(new Dimension(230, 45));
-        button.setMaximumSize(new Dimension(230, 45));
+        button.setPreferredSize(new Dimension(230, 40));
+        button.setMaximumSize(new Dimension(230, 40));
         button.setAlignmentX(Component.CENTER_ALIGNMENT);
         button.setContentAreaFilled(false);
         button.setBorderPainted(false);
         button.setFocusPainted(false);
         button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        button.setBorder(new EmptyBorder(8, 15, 8, 15));
-        
-        // Add hover effects
-        button.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseEntered(MouseEvent e) {
-                button.setOpaque(true);
-                button.setBackground(new Color(255, 101, 0, 50));
-                FontIcon newIcon = FontIcon.of(iconCode, 18, Color.decode("#FF6500"));
-                iconLabel.setIcon(newIcon);
-                textLabel.setForeground(Color.decode("#FF6500"));
-            }
-            
-            @Override
-            public void mouseExited(MouseEvent e) {
-                button.setOpaque(false);
-                FontIcon newIcon = FontIcon.of(iconCode, 18, Color.WHITE);
-                iconLabel.setIcon(newIcon);
-                textLabel.setForeground(Color.WHITE);
-            }
-            
-            @Override
-            public void mousePressed(MouseEvent e) {
-                button.setBackground(Color.decode("#FF6500"));
-            }
-        });
+        button.setBorder(new EmptyBorder(5, 10, 5, 10));
         
         return button;
     }
@@ -382,19 +370,19 @@ public class MainFrame extends JFrame {
         
         cadastroWrapper.add(titlePanel, BorderLayout.NORTH);
         
-        formPanel.add(createIconLabel("ID (para busca, edição ou exclusão):", "🆔"));
+        formPanel.add(createFieldLabel("ID (para busca, edição ou exclusão):", FontAwesomeSolid.ID_CARD));
         formPanel.add(idField);
-        formPanel.add(createIconLabel("Nome Completo:", "👤"));
+        formPanel.add(createFieldLabel("Nome Completo:", FontAwesomeSolid.USER));
         formPanel.add(nomeField);
-        formPanel.add(createIconLabel("CPF:", "📝"));
+        formPanel.add(createFieldLabel("CPF:", FontAwesomeSolid.ID_BADGE));
         formPanel.add(cpfField);
-        formPanel.add(createIconLabel("Email:", "✉️"));
+        formPanel.add(createFieldLabel("Email:", FontAwesomeSolid.ENVELOPE));
         formPanel.add(emailField);
-        formPanel.add(createIconLabel("Cargo:", "💼"));
+        formPanel.add(createFieldLabel("Cargo:", FontAwesomeSolid.BRIEFCASE));
         formPanel.add(cargoField);
-        formPanel.add(createIconLabel("Login:", "🔑"));
+        formPanel.add(createFieldLabel("Login:", FontAwesomeSolid.USER_CIRCLE));
         formPanel.add(loginField);
-        formPanel.add(createIconLabel("Senha:", "🔒"));
+        formPanel.add(createFieldLabel("Senha:", FontAwesomeSolid.LOCK));
         formPanel.add(senhaField);
 
         JPanel buttonPanel = new JPanel(new GridLayout(1, 4, 15, 15));
@@ -501,58 +489,72 @@ public class MainFrame extends JFrame {
         return centeringPanel;
     }
 
-    private JLabel createIconLabel(String text, String iconText) {
-        JLabel label = new JLabel(iconText + " " + text);
-        label.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        label.setForeground(Color.decode("#0B192C"));
-        label.setBorder(new EmptyBorder(0, 0, 5, 0));
-        return label;
-    }
-
-    private JButton createIconActionButton(Ikon iconCode, String text, Color baseColor) {
-        JButton button = new JButton();
-        button.setLayout(new FlowLayout(FlowLayout.CENTER, 5, 0));
+    private JLabel createFieldLabel(String text, Ikon iconCode) {
+        JPanel labelPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+        labelPanel.setOpaque(false);
         
         // Create icon
         JLabel iconLabel = new JLabel();
-        FontIcon icon = FontIcon.of(iconCode, 14, Color.WHITE);
+        FontIcon icon = FontIcon.of(iconCode, 14, Color.decode("#0B192C"));
         iconLabel.setIcon(icon);
         
-        // Create text label
+        // Create text
         JLabel textLabel = new JLabel(text);
-        textLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        textLabel.setForeground(Color.WHITE);
+        textLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        textLabel.setForeground(Color.decode("#0B192C"));
         
-        // Add components
-        button.add(iconLabel);
-        button.add(textLabel);
+        labelPanel.add(iconLabel);
+        labelPanel.add(textLabel);
+        
+        // Return a wrapper label that contains the panel
+        JLabel wrapperLabel = new JLabel();
+        wrapperLabel.setLayout(new BorderLayout());
+        wrapperLabel.add(labelPanel, BorderLayout.WEST);
+        wrapperLabel.setBorder(new EmptyBorder(0, 0, 5, 0));
+        
+        return wrapperLabel;
+    }
+
+    private JButton createIconActionButton(Ikon iconCode, String text, Color baseColor) {
+        JButton button = new JButton() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                // Background
+                Color bgColor = baseColor;
+                if (getModel().isPressed()) {
+                    bgColor = baseColor.darker();
+                } else if (getModel().isRollover()) {
+                    bgColor = baseColor.brighter();
+                }
+                
+                g2d.setColor(bgColor);
+                g2d.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+                
+                // Icon
+                FontIcon icon = FontIcon.of(iconCode, 14, Color.WHITE);
+                int iconX = 15;
+                int iconY = (getHeight() - 14) / 2;
+                icon.paintIcon(this, g2d, iconX, iconY);
+                
+                // Text
+                g2d.setColor(Color.WHITE);
+                g2d.setFont(new Font("Segoe UI", Font.BOLD, 12));
+                FontMetrics fm = g2d.getFontMetrics();
+                int textX = iconX + 20;
+                int textY = (getHeight() + fm.getAscent()) / 2 - 2;
+                g2d.drawString(text, textX, textY);
+            }
+        };
         
         // Style button
         button.setPreferredSize(new Dimension(120, 45));
-        button.setBackground(baseColor);
-        button.setOpaque(true);
+        button.setContentAreaFilled(false);
         button.setBorderPainted(false);
         button.setFocusPainted(false);
         button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        button.setBorder(new LineBorder(baseColor, 1, true));
-        
-        // Add hover effects
-        button.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseEntered(MouseEvent e) {
-                button.setBackground(baseColor.brighter());
-            }
-            
-            @Override
-            public void mouseExited(MouseEvent e) {
-                button.setBackground(baseColor);
-            }
-            
-            @Override
-            public void mousePressed(MouseEvent e) {
-                button.setBackground(baseColor.darker());
-            }
-        });
         
         return button;
     }
