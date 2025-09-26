@@ -894,14 +894,19 @@ public class MainFrame extends JFrame {
             
             Usuario usuario = usuarioDAO.findById(id);
             if (usuario != null) {
-                int result = JOptionPane.showConfirmDialog(
+                String[] options = {"Sim, Excluir", "Cancelar"};
+                int result = JOptionPane.showOptionDialog(
                     this,
-                    "Tem certeza que deseja excluir o usuário?\n\n" +
+                    "ATENÇÃO: Esta ação não pode ser desfeita!\n\n" +
+                    "Deseja realmente excluir o usuário?\n\n" +
                     "Nome: " + usuario.getNomeCompleto() + "\n" +
                     "ID: " + id,
-                    "Confirmar Exclusão",
+                    "Confirmar Exclusão de Usuário",
                     JOptionPane.YES_NO_OPTION,
-                    JOptionPane.WARNING_MESSAGE
+                    JOptionPane.WARNING_MESSAGE,
+                    null,
+                    options,
+                    options[1]
                 );
                 
                 if (result == JOptionPane.YES_OPTION) {
@@ -1001,15 +1006,15 @@ public class MainFrame extends JFrame {
                             String id = (String) tableModel.getValueAt(selectedRow, 0);
                             String nome = (String) tableModel.getValueAt(selectedRow, 1);
                             
-                            // Diálogo de confirmação mais elaborado
-                            String[] options = {"🗑️ Sim, Excluir", "❌ Cancelar"};
+                            // Diálogo de confirmação
+                            String[] options = {"Sim, Excluir", "Cancelar"};
                             int confirm = JOptionPane.showOptionDialog(
                                 MainFrame.this,
-                                "⚠️ ATENÇÃO: Esta ação não pode ser desfeita!\n\n" +
+                                "ATENÇÃO: Esta ação não pode ser desfeita!\n\n" +
                                 "Deseja realmente excluir o usuário?\n\n" +
-                                "👤 Nome: " + nome + "\n" +
-                                "🆔 ID: " + id,
-                                "🚨 Confirmar Exclusão de Usuário",
+                                "Nome: " + nome + "\n" +
+                                "ID: " + id,
+                                "Confirmar Exclusão de Usuário",
                                 JOptionPane.YES_NO_OPTION,
                                 JOptionPane.WARNING_MESSAGE,
                                 null,
@@ -1280,33 +1285,288 @@ public class MainFrame extends JFrame {
         titlePanel.add(iconLabel);
         titlePanel.add(Box.createHorizontalStrut(15));
         titlePanel.add(titleText);
-        titlePanel.setBorder(new EmptyBorder(0, 0, 30, 0));
+        titlePanel.setBorder(new EmptyBorder(0, 0, 20, 0));
 
-        // Content
-        JPanel contentPanel = new JPanel(new BorderLayout());
-        contentPanel.setOpaque(false);
+        // Main content panel with two sections
+        JPanel mainContent = new JPanel(new BorderLayout());
+        mainContent.setOpaque(false);
         
-        JLabel messageLabel = new JLabel("<html><div style='text-align: center;'>" +
-            "<h2>🚧 Funcionalidade em Desenvolvimento</h2>" +
-            "<p>O módulo de gerenciamento de projetos está sendo implementado.</p>" +
-            "<p>Em breve você poderá:</p>" +
-            "<ul>" +
-            "<li>✅ Criar novos projetos</li>" +
-            "<li>✅ Definir gerentes responsáveis</li>" +
-            "<li>✅ Acompanhar status e prazos</li>" +
-            "<li>✅ Gerenciar equipes por projeto</li>" +
-            "</ul>" +
-            "</div></html>");
-        messageLabel.setFont(new Font("Segoe UI", Font.PLAIN, 16));
-        messageLabel.setForeground(Color.decode("#0B192C"));
-        messageLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        // Form section
+        JPanel formSection = createProjetoFormSection();
         
-        contentPanel.add(messageLabel, BorderLayout.CENTER);
+        // Table section
+        JPanel tableSection = createProjetoTableSection();
+        
+        mainContent.add(formSection, BorderLayout.NORTH);
+        mainContent.add(tableSection, BorderLayout.CENTER);
         
         panel.add(titlePanel, BorderLayout.NORTH);
-        panel.add(contentPanel, BorderLayout.CENTER);
+        panel.add(mainContent, BorderLayout.CENTER);
         
         return panel;
+    }
+    
+    private JPanel createProjetoFormSection() {
+        JPanel formWrapper = new JPanel(new BorderLayout());
+        formWrapper.setOpaque(false);
+        formWrapper.setBorder(new EmptyBorder(0, 0, 20, 0));
+        
+        // Form title
+        JLabel formTitle = new JLabel("Cadastro/Edição de Projetos");
+        formTitle.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        formTitle.setForeground(Color.decode("#0B192C"));
+        formTitle.setBorder(new EmptyBorder(0, 0, 15, 0));
+        
+        // Form fields
+        JPanel formPanel = new JPanel(new GridLayout(0, 2, 15, 10));
+        formPanel.setOpaque(false);
+        
+        // Project fields
+        JTextField projetoIdField = createStyledTextField();
+        JTextField projetoNomeField = createStyledTextField();
+        JTextField projetoDescricaoField = createStyledTextField();
+        JTextField projetoDataInicioField = createStyledTextField();
+        JTextField projetoDataTerminoField = createStyledTextField();
+        JTextField projetoStatusField = createStyledTextField();
+        JTextField projetoGerenteIdField = createStyledTextField();
+        
+        // Add hint text
+        projetoDataInicioField.setToolTipText("Formato: YYYY-MM-DD (ex: 2024-01-15)");
+        projetoDataTerminoField.setToolTipText("Formato: YYYY-MM-DD (ex: 2024-12-31)");
+        projetoGerenteIdField.setToolTipText("ID do usuário que será o gerente do projeto");
+        
+        formPanel.add(createFieldLabel("ID do Projeto (para edição):", FontAwesomeSolid.ID_CARD));
+        formPanel.add(projetoIdField);
+        formPanel.add(createFieldLabel("Nome do Projeto:", FontAwesomeSolid.PROJECT_DIAGRAM));
+        formPanel.add(projetoNomeField);
+        formPanel.add(createFieldLabel("Descrição:", FontAwesomeSolid.ALIGN_LEFT));
+        formPanel.add(projetoDescricaoField);
+        formPanel.add(createFieldLabel("Data de Início (YYYY-MM-DD):", FontAwesomeSolid.CALENDAR_ALT));
+        formPanel.add(projetoDataInicioField);
+        formPanel.add(createFieldLabel("Data de Término (YYYY-MM-DD):", FontAwesomeSolid.CALENDAR_CHECK));
+        formPanel.add(projetoDataTerminoField);
+        formPanel.add(createFieldLabel("Status:", FontAwesomeSolid.TASKS));
+        formPanel.add(projetoStatusField);
+        formPanel.add(createFieldLabel("ID do Gerente:", FontAwesomeSolid.USER_TIE));
+        formPanel.add(projetoGerenteIdField);
+        
+        // Button panel
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 0));
+        buttonPanel.setOpaque(false);
+        buttonPanel.setBorder(new EmptyBorder(15, 0, 0, 0));
+
+        JButton salvarProjetoBtn = createIconActionButton(FontAwesomeSolid.SAVE, "Salvar", Color.decode("#27AE60"));
+        JButton buscarProjetoBtn = createIconActionButton(FontAwesomeSolid.SEARCH, "Buscar", Color.decode("#3498DB"));
+        JButton atualizarProjetoBtn = createIconActionButton(FontAwesomeSolid.EDIT, "Atualizar", Color.decode("#F39C12"));
+        JButton excluirProjetoBtn = createIconActionButton(FontAwesomeSolid.TRASH, "Excluir", Color.decode("#E74C3C"));
+        JButton limparProjetoBtn = createIconActionButton(FontAwesomeSolid.ERASER, "Limpar", Color.decode("#95A5A6"));
+
+        buttonPanel.add(salvarProjetoBtn);
+        buttonPanel.add(buscarProjetoBtn);
+        buttonPanel.add(atualizarProjetoBtn);
+        buttonPanel.add(excluirProjetoBtn);
+        buttonPanel.add(limparProjetoBtn);
+
+        // Button actions
+        salvarProjetoBtn.addActionListener(e -> salvarProjeto(projetoNomeField, projetoDescricaoField, 
+            projetoDataInicioField, projetoDataTerminoField, projetoStatusField, projetoGerenteIdField));
+
+        buscarProjetoBtn.addActionListener(e -> buscarProjeto(projetoIdField, projetoNomeField, 
+            projetoDescricaoField, projetoDataInicioField, projetoDataTerminoField, projetoStatusField, projetoGerenteIdField));
+
+        atualizarProjetoBtn.addActionListener(e -> atualizarProjeto(projetoIdField, projetoNomeField, 
+            projetoDescricaoField, projetoDataInicioField, projetoDataTerminoField, projetoStatusField, projetoGerenteIdField));
+
+        excluirProjetoBtn.addActionListener(e -> excluirProjeto(projetoIdField));
+
+        limparProjetoBtn.addActionListener(e -> {
+            projetoIdField.setText("");
+            projetoNomeField.setText("");
+            projetoDescricaoField.setText("");
+            projetoDataInicioField.setText("");
+            projetoDataTerminoField.setText("");
+            projetoStatusField.setText("");
+            projetoGerenteIdField.setText("");
+        });
+        
+        formWrapper.add(formTitle, BorderLayout.NORTH);
+        formWrapper.add(formPanel, BorderLayout.CENTER);
+        formWrapper.add(buttonPanel, BorderLayout.SOUTH);
+        
+        return formWrapper;
+    }
+    
+    private JPanel createProjetoTableSection() {
+        JPanel tableWrapper = new JPanel(new BorderLayout());
+        tableWrapper.setOpaque(false);
+        
+        // Table title
+        JLabel tableTitle = new JLabel("Lista de Projetos");
+        tableTitle.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        tableTitle.setForeground(Color.decode("#0B192C"));
+        tableTitle.setBorder(new EmptyBorder(0, 0, 15, 0));
+        
+        // Create table
+        String[] colunasProjeto = {"ID", "Nome", "Descrição", "Data Início", "Data Término", "Status", "Gerente"};
+        DefaultTableModel projetoTableModel = new DefaultTableModel(colunasProjeto, 0);
+        JTable projetoTable = new JTable(projetoTableModel);
+        
+        // Style table
+        projetoTable.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        projetoTable.setRowHeight(30);
+        projetoTable.setGridColor(Color.decode("#E8EAED"));
+        projetoTable.setSelectionBackground(Color.decode("#FF6500"));
+        projetoTable.setSelectionForeground(Color.WHITE);
+        
+        // Header styling
+        projetoTable.getTableHeader().setBackground(Color.decode("#1E3E62"));
+        projetoTable.getTableHeader().setForeground(Color.decode("#ECF0F1"));
+        projetoTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
+        projetoTable.getTableHeader().setPreferredSize(new Dimension(0, 35));
+        
+        JScrollPane projetoScrollPane = new JScrollPane(projetoTable);
+        projetoScrollPane.setBorder(new LineBorder(Color.decode("#BDC3C7"), 1));
+        projetoScrollPane.setPreferredSize(new Dimension(800, 250));
+        
+        // Refresh button
+        JPanel refreshPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        refreshPanel.setOpaque(false);
+        refreshPanel.setBorder(new EmptyBorder(10, 0, 0, 0));
+        
+        JButton refreshProjetosBtn = createIconActionButton(FontAwesomeSolid.SYNC_ALT, "Atualizar Lista", Color.decode("#3498DB"));
+        refreshPanel.add(refreshProjetosBtn);
+        
+        refreshProjetosBtn.addActionListener(e -> refreshProjetoList(projetoTableModel));
+        
+        tableWrapper.add(tableTitle, BorderLayout.NORTH);
+        tableWrapper.add(projetoScrollPane, BorderLayout.CENTER);
+        tableWrapper.add(refreshPanel, BorderLayout.SOUTH);
+        
+        // Load initial data
+        refreshProjetoList(projetoTableModel);
+        
+        return tableWrapper;
+    }
+
+    // Métodos de lógica para Projetos
+    private void salvarProjeto(JTextField nome, JTextField descricao, JTextField dataInicio, 
+                              JTextField dataTermino, JTextField status, JTextField gerenteId) {
+        controller.ProjetoController projetoController = new controller.ProjetoController();
+        String erro = projetoController.criarProjeto(
+            nome.getText(), descricao.getText(), dataInicio.getText(),
+            dataTermino.getText(), status.getText(), gerenteId.getText()
+        );
+        
+        if (erro == null) {
+            showToast("Projeto salvo com sucesso!", "success");
+            // Limpar campos
+            nome.setText("");
+            descricao.setText("");
+            dataInicio.setText("");
+            dataTermino.setText("");
+            status.setText("");
+            gerenteId.setText("");
+        } else {
+            showToast(erro, "error");
+        }
+    }
+
+    private void buscarProjeto(JTextField id, JTextField nome, JTextField descricao, 
+                              JTextField dataInicio, JTextField dataTermino, JTextField status, 
+                              JTextField gerenteId) {
+        if (id.getText().trim().isEmpty()) {
+            showToast("ID é obrigatório para busca!", "error");
+            return;
+        }
+        
+        controller.ProjetoController projetoController = new controller.ProjetoController();
+        Projeto projeto = projetoController.buscarProjeto(id.getText());
+        if (projeto != null) {
+            nome.setText(projeto.getNome());
+            descricao.setText(projeto.getDescricao());
+            dataInicio.setText(projeto.getDataInicio().toString());
+            dataTermino.setText(projeto.getDataTerminoPrevista() != null ? 
+                              projeto.getDataTerminoPrevista().toString() : "");
+            status.setText(projeto.getStatus());
+            gerenteId.setText(projeto.getGerenteResponsavel() != null ? 
+                            projeto.getGerenteResponsavel().getId() : "");
+            showToast("Projeto encontrado!", "success");
+        } else {
+            showToast("Projeto não encontrado!", "error");
+        }
+    }
+
+    private void atualizarProjeto(JTextField id, JTextField nome, JTextField descricao, 
+                                 JTextField dataInicio, JTextField dataTermino, JTextField status, 
+                                 JTextField gerenteId) {
+        if (id.getText().trim().isEmpty()) {
+            showToast("ID é obrigatório para atualização!", "error");
+            return;
+        }
+        
+        controller.ProjetoController projetoController = new controller.ProjetoController();
+        String erro = projetoController.atualizarProjeto(
+            id.getText(), nome.getText(), descricao.getText(), dataInicio.getText(),
+            dataTermino.getText(), status.getText(), gerenteId.getText()
+        );
+        
+        if (erro == null) {
+            showToast("Projeto atualizado com sucesso!", "success");
+        } else {
+            showToast(erro, "error");
+        }
+    }
+
+    private void excluirProjeto(JTextField id) {
+        if (id.getText().trim().isEmpty()) {
+            showToast("ID é obrigatório para exclusão!", "error");
+            return;
+        }
+        
+        String[] options = {"Sim, Excluir", "Cancelar"};
+        int result = JOptionPane.showOptionDialog(
+            this,
+            "ATENÇÃO: Esta ação não pode ser desfeita!\n\n" +
+            "Deseja realmente excluir este projeto?\n\n" +
+            "ID: " + id.getText(),
+            "Confirmar Exclusão de Projeto",
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.WARNING_MESSAGE,
+            null,
+            options,
+            options[1]
+        );
+        
+        if (result == JOptionPane.YES_OPTION) {
+            controller.ProjetoController projetoController = new controller.ProjetoController();
+            String erro = projetoController.excluirProjeto(id.getText());
+            if (erro == null) {
+                showToast("Projeto excluído com sucesso!", "success");
+                id.setText("");
+            } else {
+                showToast(erro, "error");
+            }
+        }
+    }
+
+    private void refreshProjetoList(DefaultTableModel tableModel) {
+        tableModel.setRowCount(0);
+        controller.ProjetoController projetoController = new controller.ProjetoController();
+        List<Projeto> projetos = projetoController.listarTodosProjetos();
+        
+        for (Projeto projeto : projetos) {
+            Vector<String> row = new Vector<>();
+            row.add(projeto.getId());
+            row.add(projeto.getNome());
+            row.add(projeto.getDescricao());
+            row.add(projeto.getDataInicio().toString());
+            row.add(projeto.getDataTerminoPrevista() != null ? 
+                   projeto.getDataTerminoPrevista().toString() : "");
+            row.add(projeto.getStatus());
+            row.add(projeto.getGerenteResponsavel() != null ? 
+                   projeto.getGerenteResponsavel().getNomeCompleto() : "");
+            tableModel.addRow(row);
+        }
     }
 
     private JPanel createEquipesPanel() {
@@ -1343,32 +1603,308 @@ public class MainFrame extends JFrame {
         titlePanel.add(iconLabel);
         titlePanel.add(Box.createHorizontalStrut(15));
         titlePanel.add(titleText);
-        titlePanel.setBorder(new EmptyBorder(0, 0, 30, 0));
+        titlePanel.setBorder(new EmptyBorder(0, 0, 20, 0));
 
-        // Content
-        JPanel contentPanel = new JPanel(new BorderLayout());
-        contentPanel.setOpaque(false);
+        // Main content panel with two sections
+        JPanel mainContent = new JPanel(new BorderLayout());
+        mainContent.setOpaque(false);
         
-        JLabel messageLabel = new JLabel("<html><div style='text-align: center;'>" +
-            "<h2>🚧 Funcionalidade em Desenvolvimento</h2>" +
-            "<p>O módulo de gerenciamento de equipes está sendo implementado.</p>" +
-            "<p>Em breve você poderá:</p>" +
-            "<ul>" +
-            "<li>✅ Criar e gerenciar equipes</li>" +
-            "<li>✅ Adicionar/remover membros</li>" +
-            "<li>✅ Definir responsabilidades</li>" +
-            "<li>✅ Acompanhar performance</li>" +
-            "</ul>" +
-            "</div></html>");
-        messageLabel.setFont(new Font("Segoe UI", Font.PLAIN, 16));
-        messageLabel.setForeground(Color.decode("#0B192C"));
-        messageLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        // Form section
+        JPanel formSection = createEquipeFormSection();
         
-        contentPanel.add(messageLabel, BorderLayout.CENTER);
+        // Table section
+        JPanel tableSection = createEquipeTableSection();
+        
+        mainContent.add(formSection, BorderLayout.NORTH);
+        mainContent.add(tableSection, BorderLayout.CENTER);
         
         panel.add(titlePanel, BorderLayout.NORTH);
-        panel.add(contentPanel, BorderLayout.CENTER);
+        panel.add(mainContent, BorderLayout.CENTER);
         
         return panel;
+    }
+    
+    private JPanel createEquipeFormSection() {
+        JPanel formWrapper = new JPanel(new BorderLayout());
+        formWrapper.setOpaque(false);
+        formWrapper.setBorder(new EmptyBorder(0, 0, 20, 0));
+        
+        // Form title
+        JLabel formTitle = new JLabel("Cadastro/Edição de Equipes");
+        formTitle.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        formTitle.setForeground(Color.decode("#0B192C"));
+        formTitle.setBorder(new EmptyBorder(0, 0, 15, 0));
+        
+        // Form fields
+        JPanel formPanel = new JPanel(new GridLayout(0, 2, 15, 10));
+        formPanel.setOpaque(false);
+        
+        // Team fields
+        JTextField equipeIdField = createStyledTextField();
+        JTextField equipeNomeField = createStyledTextField();
+        JTextField equipeDescricaoField = createStyledTextField();
+        
+        formPanel.add(createFieldLabel("ID da Equipe (para edição):", FontAwesomeSolid.ID_CARD));
+        formPanel.add(equipeIdField);
+        formPanel.add(createFieldLabel("Nome da Equipe:", FontAwesomeSolid.USERS));
+        formPanel.add(equipeNomeField);
+        formPanel.add(createFieldLabel("Descrição:", FontAwesomeSolid.ALIGN_LEFT));
+        formPanel.add(equipeDescricaoField);
+        
+        // Button panel
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 0));
+        buttonPanel.setOpaque(false);
+        buttonPanel.setBorder(new EmptyBorder(15, 0, 0, 0));
+
+        JButton salvarEquipeBtn = createIconActionButton(FontAwesomeSolid.SAVE, "Salvar", Color.decode("#27AE60"));
+        JButton buscarEquipeBtn = createIconActionButton(FontAwesomeSolid.SEARCH, "Buscar", Color.decode("#3498DB"));
+        JButton atualizarEquipeBtn = createIconActionButton(FontAwesomeSolid.EDIT, "Atualizar", Color.decode("#F39C12"));
+        JButton excluirEquipeBtn = createIconActionButton(FontAwesomeSolid.TRASH, "Excluir", Color.decode("#E74C3C"));
+        JButton limparEquipeBtn = createIconActionButton(FontAwesomeSolid.ERASER, "Limpar", Color.decode("#95A5A6"));
+
+        buttonPanel.add(salvarEquipeBtn);
+        buttonPanel.add(buscarEquipeBtn);
+        buttonPanel.add(atualizarEquipeBtn);
+        buttonPanel.add(excluirEquipeBtn);
+        buttonPanel.add(limparEquipeBtn);
+
+        // Button actions
+        salvarEquipeBtn.addActionListener(e -> salvarEquipe(equipeNomeField, equipeDescricaoField));
+
+        buscarEquipeBtn.addActionListener(e -> buscarEquipe(equipeIdField, equipeNomeField, equipeDescricaoField));
+
+        atualizarEquipeBtn.addActionListener(e -> atualizarEquipe(equipeIdField, equipeNomeField, equipeDescricaoField));
+
+        excluirEquipeBtn.addActionListener(e -> excluirEquipe(equipeIdField));
+
+        limparEquipeBtn.addActionListener(e -> {
+            equipeIdField.setText("");
+            equipeNomeField.setText("");
+            equipeDescricaoField.setText("");
+        });
+        
+        formWrapper.add(formTitle, BorderLayout.NORTH);
+        formWrapper.add(formPanel, BorderLayout.CENTER);
+        formWrapper.add(buttonPanel, BorderLayout.SOUTH);
+        
+        return formWrapper;
+    }
+    
+    private JPanel createEquipeTableSection() {
+        JPanel tableWrapper = new JPanel(new BorderLayout());
+        tableWrapper.setOpaque(false);
+        
+        // Table title
+        JLabel tableTitle = new JLabel("Lista de Equipes");
+        tableTitle.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        tableTitle.setForeground(Color.decode("#0B192C"));
+        tableTitle.setBorder(new EmptyBorder(0, 0, 15, 0));
+        
+        // Create table
+        String[] colunasEquipe = {"ID", "Nome", "Descrição", "Membros"};
+        DefaultTableModel equipeTableModel = new DefaultTableModel(colunasEquipe, 0);
+        JTable equipeTable = new JTable(equipeTableModel);
+        
+        // Style table
+        equipeTable.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        equipeTable.setRowHeight(30);
+        equipeTable.setGridColor(Color.decode("#E8EAED"));
+        equipeTable.setSelectionBackground(Color.decode("#FF6500"));
+        equipeTable.setSelectionForeground(Color.WHITE);
+        
+        // Header styling
+        equipeTable.getTableHeader().setBackground(Color.decode("#1E3E62"));
+        equipeTable.getTableHeader().setForeground(Color.decode("#ECF0F1"));
+        equipeTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
+        equipeTable.getTableHeader().setPreferredSize(new Dimension(0, 35));
+        
+        JScrollPane equipeScrollPane = new JScrollPane(equipeTable);
+        equipeScrollPane.setBorder(new LineBorder(Color.decode("#BDC3C7"), 1));
+        equipeScrollPane.setPreferredSize(new Dimension(800, 250));
+        
+        // Management panel for members
+        JPanel memberPanel = createMemberManagementPanel();
+        
+        // Refresh button
+        JPanel refreshPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        refreshPanel.setOpaque(false);
+        refreshPanel.setBorder(new EmptyBorder(10, 0, 0, 0));
+        
+        JButton refreshEquipesBtn = createIconActionButton(FontAwesomeSolid.SYNC_ALT, "Atualizar Lista", Color.decode("#3498DB"));
+        refreshPanel.add(refreshEquipesBtn);
+        
+        refreshEquipesBtn.addActionListener(e -> refreshEquipeList(equipeTableModel));
+        
+        tableWrapper.add(tableTitle, BorderLayout.NORTH);
+        tableWrapper.add(equipeScrollPane, BorderLayout.CENTER);
+        tableWrapper.add(memberPanel, BorderLayout.SOUTH);
+        
+        // Load initial data
+        refreshEquipeList(equipeTableModel);
+        
+        return tableWrapper;
+    }
+    
+    private JPanel createMemberManagementPanel() {
+        JPanel memberPanel = new JPanel(new BorderLayout());
+        memberPanel.setOpaque(false);
+        memberPanel.setBorder(new EmptyBorder(15, 0, 0, 0));
+        
+        // Title
+        JLabel memberTitle = new JLabel("Gerenciamento de Membros");
+        memberTitle.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        memberTitle.setForeground(Color.decode("#0B192C"));
+        memberTitle.setBorder(new EmptyBorder(0, 0, 10, 0));
+        
+        // Form
+        JPanel memberForm = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
+        memberForm.setOpaque(false);
+        
+        JLabel equipeIdLabel = new JLabel("ID da Equipe:");
+        equipeIdLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        
+        JTextField memberEquipeIdField = createStyledTextField();
+        memberEquipeIdField.setPreferredSize(new Dimension(120, 30));
+        
+        JLabel usuarioIdLabel = new JLabel("ID do Usuário:");
+        usuarioIdLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        
+        JTextField memberUsuarioIdField = createStyledTextField();
+        memberUsuarioIdField.setPreferredSize(new Dimension(120, 30));
+        
+        JButton adicionarMembroBtn = createIconActionButton(FontAwesomeSolid.USER_PLUS, "Adicionar", Color.decode("#27AE60"));
+        JButton removerMembroBtn = createIconActionButton(FontAwesomeSolid.USER_MINUS, "Remover", Color.decode("#E74C3C"));
+        
+        memberForm.add(equipeIdLabel);
+        memberForm.add(memberEquipeIdField);
+        memberForm.add(usuarioIdLabel);
+        memberForm.add(memberUsuarioIdField);
+        memberForm.add(adicionarMembroBtn);
+        memberForm.add(removerMembroBtn);
+        
+        // Button actions
+        adicionarMembroBtn.addActionListener(e -> {
+            controller.EquipeController equipeController = new controller.EquipeController();
+            String erro = equipeController.adicionarMembro(memberEquipeIdField.getText(), memberUsuarioIdField.getText());
+            if (erro == null) {
+                showToast("Membro adicionado com sucesso!", "success");
+                memberEquipeIdField.setText("");
+                memberUsuarioIdField.setText("");
+            } else {
+                showToast(erro, "error");
+            }
+        });
+        
+        removerMembroBtn.addActionListener(e -> {
+            controller.EquipeController equipeController = new controller.EquipeController();
+            String erro = equipeController.removerMembro(memberEquipeIdField.getText(), memberUsuarioIdField.getText());
+            if (erro == null) {
+                showToast("Membro removido com sucesso!", "success");
+                memberEquipeIdField.setText("");
+                memberUsuarioIdField.setText("");
+            } else {
+                showToast(erro, "error");
+            }
+        });
+        
+        memberPanel.add(memberTitle, BorderLayout.NORTH);
+        memberPanel.add(memberForm, BorderLayout.CENTER);
+        
+        return memberPanel;
+    }
+
+    // Métodos de lógica para Equipes
+    private void salvarEquipe(JTextField nome, JTextField descricao) {
+        controller.EquipeController equipeController = new controller.EquipeController();
+        String erro = equipeController.criarEquipe(nome.getText(), descricao.getText());
+        
+        if (erro == null) {
+            showToast("Equipe salva com sucesso!", "success");
+            // Limpar campos
+            nome.setText("");
+            descricao.setText("");
+        } else {
+            showToast(erro, "error");
+        }
+    }
+
+    private void buscarEquipe(JTextField id, JTextField nome, JTextField descricao) {
+        if (id.getText().trim().isEmpty()) {
+            showToast("ID é obrigatório para busca!", "error");
+            return;
+        }
+        
+        controller.EquipeController equipeController = new controller.EquipeController();
+        Equipe equipe = equipeController.buscarEquipe(id.getText());
+        if (equipe != null) {
+            nome.setText(equipe.getNome());
+            descricao.setText(equipe.getDescricao());
+            showToast("Equipe encontrada!", "success");
+        } else {
+            showToast("Equipe não encontrada!", "error");
+        }
+    }
+
+    private void atualizarEquipe(JTextField id, JTextField nome, JTextField descricao) {
+        if (id.getText().trim().isEmpty()) {
+            showToast("ID é obrigatório para atualização!", "error");
+            return;
+        }
+        
+        controller.EquipeController equipeController = new controller.EquipeController();
+        String erro = equipeController.atualizarEquipe(id.getText(), nome.getText(), descricao.getText());
+        
+        if (erro == null) {
+            showToast("Equipe atualizada com sucesso!", "success");
+        } else {
+            showToast(erro, "error");
+        }
+    }
+
+    private void excluirEquipe(JTextField id) {
+        if (id.getText().trim().isEmpty()) {
+            showToast("ID é obrigatório para exclusão!", "error");
+            return;
+        }
+        
+        String[] options = {"Sim, Excluir", "Cancelar"};
+        int result = JOptionPane.showOptionDialog(
+            this,
+            "ATENÇÃO: Esta ação não pode ser desfeita!\n\n" +
+            "Deseja realmente excluir esta equipe?\n\n" +
+            "ID: " + id.getText(),
+            "Confirmar Exclusão de Equipe",
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.WARNING_MESSAGE,
+            null,
+            options,
+            options[1]
+        );
+        
+        if (result == JOptionPane.YES_OPTION) {
+            controller.EquipeController equipeController = new controller.EquipeController();
+            String erro = equipeController.excluirEquipe(id.getText());
+            if (erro == null) {
+                showToast("Equipe excluída com sucesso!", "success");
+                id.setText("");
+            } else {
+                showToast(erro, "error");
+            }
+        }
+    }
+
+    private void refreshEquipeList(DefaultTableModel tableModel) {
+        tableModel.setRowCount(0);
+        controller.EquipeController equipeController = new controller.EquipeController();
+        List<Equipe> equipes = equipeController.listarTodasEquipes();
+        
+        for (Equipe equipe : equipes) {
+            Vector<String> row = new Vector<>();
+            row.add(equipe.getId());
+            row.add(equipe.getNome());
+            row.add(equipe.getDescricao());
+            row.add(String.valueOf(equipe.getMembros().size()) + " membros");
+            tableModel.addRow(row);
+        }
     }
 }
