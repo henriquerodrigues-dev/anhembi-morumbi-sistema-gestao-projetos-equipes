@@ -1,6 +1,7 @@
 import model.Equipe;
 import model.Projeto;
 import model.Usuario;
+import util.Database;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
@@ -14,6 +15,13 @@ public class App {
         } catch (UnsupportedEncodingException e) {
             System.out.println("Erro na configuração de codificação: " + e.getMessage());
         }
+
+        // --- Teste da conexão e criação de tabelas ---
+        System.out.println("Tentando conectar com o banco de dados e criar tabelas...");
+        Database.createTables();
+        System.out.println("Operação de banco de dados concluída.");
+        
+        System.out.println("\n----------------------------------\n");
 
         // --- Teste da classe Usuario ---
         Usuario gerente = new Usuario(
