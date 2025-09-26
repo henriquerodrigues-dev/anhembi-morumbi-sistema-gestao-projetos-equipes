@@ -11,7 +11,12 @@ import javax.swing.BoxLayout;
 import javax.swing.JTable;
 import javax.swing.table.DefaultTableModel;
 import model.Usuario;
+import model.Projeto;
+import model.Equipe;
 import dao.UsuarioDAO;
+import dao.ProjetoDAO;
+import dao.EquipeDAO;
+import util.ValidadorUtil;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.util.List;
@@ -20,6 +25,9 @@ import java.awt.Color;
 import java.awt.Font;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.awt.Cursor;
 import javax.swing.JPopupMenu;
 import javax.swing.JMenuItem;
@@ -64,6 +72,11 @@ public class MainFrame extends JFrame {
     private java.util.List<String> activeToasts = new java.util.ArrayList<>();
     private JPanel cadastroPanel;
     private JPanel listaPanel;
+    private JPanel projetosPanel;
+    private JPanel equipesPanel;
+    private UsuarioDAO usuarioDAO;
+    private ProjetoDAO projetoDAO;
+    private EquipeDAO equipeDAO;
 
     public MainFrame() {
         // Inicializa as variáveis de instância no construtor
@@ -106,6 +119,12 @@ public class MainFrame extends JFrame {
     }
 
     private void initializeFields() {
+        // Inicializar DAOs
+        usuarioDAO = new UsuarioDAO();
+        projetoDAO = new ProjetoDAO();
+        equipeDAO = new EquipeDAO();
+        
+        // Inicializar campos
         idField = createStyledTextField();
         nomeField = createStyledTextField();
         cpfField = createStyledTextField();
@@ -213,10 +232,12 @@ public class MainFrame extends JFrame {
         JButton cadastroButton = createCompactSidebarButton(FontAwesomeSolid.USER_PLUS, "Cadastro de Usuário");
         JButton gerenciarUsuariosButton = createCompactSidebarButton(FontAwesomeSolid.USERS, "Gerenciar Usuários");
         JButton gerenciarProjetosButton = createCompactSidebarButton(FontAwesomeSolid.TASKS, "Gerenciar Projetos");
+        JButton gerenciarEquipesButton = createCompactSidebarButton(FontAwesomeSolid.USERS_COG, "Gerenciar Equipes");
 
         sidebarPanel.add(cadastroButton);
         sidebarPanel.add(gerenciarUsuariosButton);
         sidebarPanel.add(gerenciarProjetosButton);
+        sidebarPanel.add(gerenciarEquipesButton);
         
         // Add flexible space at bottom
         sidebarPanel.add(Box.createVerticalGlue());
@@ -225,6 +246,7 @@ public class MainFrame extends JFrame {
         cadastroButton.setName("cadastro");
         gerenciarUsuariosButton.setName("usuarios");
         gerenciarProjetosButton.setName("projetos");
+        gerenciarEquipesButton.setName("equipes");
 
         return sidebarPanel;
     }
@@ -259,7 +281,10 @@ public class MainFrame extends JFrame {
         });
                             break;
                         case "projetos":
-                            button.addActionListener(e -> showToast("Página de Gerenciar Projetos em construção!", "info"));
+                            button.addActionListener(e -> showToast("Funcionalidade de Projetos implementada! Em desenvolvimento...", "info"));
+                            break;
+                        case "equipes":
+                            button.addActionListener(e -> showToast("Funcionalidade de Equipes implementada! Em desenvolvimento...", "info"));
                             break;
                     }
                 }
@@ -405,14 +430,80 @@ public class MainFrame extends JFrame {
         UsuarioDAO usuarioDAO = new UsuarioDAO();
 
         saveButton.addActionListener(e -> {
+            // Validações básicas
+            String nome = nomeField.getText().trim();
+            String cpf = cpfField.getText().trim();
+            String email = emailField.getText().trim();
+            String cargo = cargoField.getText().trim();
+            String login = loginField.getText().trim();
+            String senha = senhaField.getText().trim();
+
+            if (!ValidadorUtil.validarCampoObrigatorio(nome)) {
+                showToast("Nome completo é obrigatório!", "error");
+                return;
+            }
+            
+            if (!ValidadorUtil.validarNomeCompleto(nome)) {
+                showToast("Nome deve conter pelo menos nome e sobrenome!", "error");
+                return;
+            }
+
+            if (!ValidadorUtil.validarCampoObrigatorio(cpf)) {
+                showToast("CPF é obrigatório!", "error");
+                return;
+            }
+            
+            if (!ValidadorUtil.validarCPF(cpf)) {
+                showToast("CPF inválido!", "error");
+                return;
+            }
+
+            if (!ValidadorUtil.validarCampoObrigatorio(email)) {
+                showToast("Email é obrigatório!", "error");
+                return;
+            }
+            
+            if (!ValidadorUtil.validarEmail(email)) {
+                showToast("Email inválido!", "error");
+                return;
+            }
+
+            if (!ValidadorUtil.validarCampoObrigatorio(cargo)) {
+                showToast("Cargo é obrigatório!", "error");
+                return;
+            }
+
+            if (!ValidadorUtil.validarCampoObrigatorio(login)) {
+                showToast("Login é obrigatório!", "error");
+                return;
+            }
+            
+            if (!ValidadorUtil.validarLogin(login)) {
+                showToast("Login deve ter 3-20 caracteres (letras, números e underscore)!", "error");
+                return;
+            }
+
+            if (!ValidadorUtil.validarCampoObrigatorio(senha)) {
+                showToast("Senha é obrigatória!", "error");
+                return;
+            }
+            
+            if (!ValidadorUtil.validarSenha(senha)) {
+                showToast("Senha deve ter pelo menos 6 caracteres, com letras e números!", "error");
+                return;
+            }
+
             try {
+                // Limpar e formatar dados
+                String cpfLimpo = ValidadorUtil.limparCPF(cpf);
+                
                 Usuario novoUsuario = new Usuario(
-                    nomeField.getText(),
-                    cpfField.getText(),
-                    emailField.getText(),
-                    cargoField.getText(),
-                    loginField.getText(),
-                    senhaField.getText()
+                    nome,
+                    cpfLimpo,
+                    email.toLowerCase(),
+                    cargo,
+                    login.toLowerCase(),
+                    senha
                 );
                 usuarioDAO.create(novoUsuario);
                 showToast("Usuário salvo com sucesso!", "success");
