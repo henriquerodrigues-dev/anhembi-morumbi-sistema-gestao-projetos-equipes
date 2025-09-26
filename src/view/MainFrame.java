@@ -8,7 +8,6 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.JScrollPane;
 import javax.swing.BoxLayout;
-import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.table.DefaultTableModel;
 import model.Usuario;
@@ -24,18 +23,24 @@ import java.awt.event.MouseEvent;
 import java.awt.Cursor;
 import javax.swing.JPopupMenu;
 import javax.swing.JMenuItem;
-import javax.swing.border.Border;
 import javax.swing.border.LineBorder;
 import javax.swing.border.EmptyBorder;
+import javax.swing.border.CompoundBorder;
 import javax.swing.UIManager;
 import java.awt.GridLayout;
 import javax.swing.SwingConstants;
-import javax.swing.ImageIcon;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import javax.swing.Timer;
-import java.util.Objects;
 import java.awt.FlowLayout;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.GradientPaint;
+import java.awt.AlphaComposite;
+import java.awt.Component;
+import java.awt.FontMetrics;
+import javax.swing.Box;
 
 public class MainFrame extends JFrame {
 
@@ -55,57 +60,28 @@ public class MainFrame extends JFrame {
 
     public MainFrame() {
         // Inicializa as variáveis de instância no construtor
-        idField = new JTextField();
-        nomeField = new JTextField();
-        cpfField = new JTextField();
-        emailField = new JTextField();
-        cargoField = new JTextField();
-        loginField = new JTextField();
-        senhaField = new JTextField();
+        initializeFields();
 
         // Basic frame settings
         setTitle("Sistema de Gestão de Projetos e Equipes");
-        setSize(1200, 800);
+        setSize(1400, 900);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
+        setExtendedState(JFrame.MAXIMIZED_BOTH);
 
-        // Global style settings
-        UIManager.put("TextField.border", new LineBorder(Color.decode("#BDC3C7"), 1, true));
-        UIManager.put("Button.background", Color.decode("#FF6500"));
-        UIManager.put("Button.foreground", Color.WHITE);
-        UIManager.put("Button.font", new Font("Sans-serif", Font.BOLD, 14));
-        UIManager.put("Button.focusPainted", false);
-        UIManager.put("Table.background", Color.decode("#ECF0F1"));
-        UIManager.put("Table.gridColor", Color.decode("#BDC3C7"));
+        // Global style settings - Design System Colors
+        setupGlobalStyles();
 
-        // Main panel with border layout
-        JPanel mainPanel = new JPanel(new BorderLayout());
-        mainPanel.setBackground(Color.decode("#0B192C"));
+        // Main panel with modern gradient background
+        JPanel mainPanel = createMainPanel();
 
-        // Sidebar navigation panel
-        JPanel sidebarPanel = new JPanel();
-        sidebarPanel.setLayout(new BoxLayout(sidebarPanel, BoxLayout.Y_AXIS));
-        sidebarPanel.setBackground(Color.decode("#1E3E62"));
-        sidebarPanel.setPreferredSize(new Dimension(200, 800));
-
-        JLabel appTitleLabel = new JLabel("<html><font color='#ECF0F1' size='6'><b>SISTEMA DE GESTÃO</b></font></html>");
-        appTitleLabel.setBorder(new EmptyBorder(25, 20, 25, 20));
-        appTitleLabel.setAlignmentX(JLabel.CENTER_ALIGNMENT);
-        sidebarPanel.add(appTitleLabel);
-
-        JButton cadastroButton = createSidebarButton("➕ Cadastro de Usuário");
-        JButton gerenciarUsuariosButton = createSidebarButton("👥 Gerenciar Usuários");
-        JButton gerenciarProjetosButton = createSidebarButton("📋 Gerenciar Projetos");
-
-        sidebarPanel.add(cadastroButton);
-        sidebarPanel.add(gerenciarUsuariosButton);
-        sidebarPanel.add(gerenciarProjetosButton);
+        // Modern sidebar navigation panel
+        JPanel sidebarPanel = createModernSidebar();
 
         mainPanel.add(sidebarPanel, BorderLayout.WEST);
 
-        // Main content panel
-        contentPanel = new JPanel(new BorderLayout());
-        contentPanel.setBackground(Color.decode("#ECF0F1"));
+        // Main content panel with transparency
+        contentPanel = createContentPanel();
         mainPanel.add(contentPanel, BorderLayout.CENTER);
         
         // Criar os painéis de cadastro e listagem uma vez
@@ -118,16 +94,185 @@ public class MainFrame extends JFrame {
         showPanel(listaPanel);
         refreshUserList();
 
-        // Button actions
-        cadastroButton.addActionListener(e -> {
-            clearFields();
-            showPanel(cadastroPanel);
-        });
-        gerenciarUsuariosButton.addActionListener(e -> {
-            showPanel(listaPanel);
-            refreshUserList();
-        });
-        gerenciarProjetosButton.addActionListener(e -> showToast("Página de Gerenciar Projetos em construção!", Color.decode("#3498DB")));
+        // Setup button actions
+        setupSidebarActions(sidebarPanel);
+    }
+
+    private void initializeFields() {
+        idField = createStyledTextField();
+        nomeField = createStyledTextField();
+        cpfField = createStyledTextField();
+        emailField = createStyledTextField();
+        cargoField = createStyledTextField();
+        loginField = createStyledTextField();
+        senhaField = createStyledTextField();
+    }
+
+    private void setupGlobalStyles() {
+        UIManager.put("TextField.border", new CompoundBorder(
+            new LineBorder(Color.decode("#BDC3C7"), 1, true),
+            new EmptyBorder(8, 12, 8, 12)
+        ));
+        UIManager.put("Button.background", Color.decode("#FF6500"));
+        UIManager.put("Button.foreground", Color.WHITE);
+        UIManager.put("Button.font", new Font("Segoe UI", Font.BOLD, 14));
+        UIManager.put("Button.focusPainted", false);
+        UIManager.put("Table.background", Color.decode("#FFFFFF"));
+        UIManager.put("Table.gridColor", Color.decode("#E8EAED"));
+        UIManager.put("Table.selectionBackground", Color.decode("#FF6500"));
+        UIManager.put("Table.selectionForeground", Color.WHITE);
+    }
+
+    private JTextField createStyledTextField() {
+        JTextField field = new JTextField();
+        field.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        field.setBackground(Color.WHITE);
+        field.setForeground(Color.decode("#0B192C"));
+        field.setBorder(new CompoundBorder(
+            new LineBorder(Color.decode("#BDC3C7"), 1, true),
+            new EmptyBorder(10, 15, 10, 15)
+        ));
+        return field;
+    }
+
+    private JPanel createMainPanel() {
+        return new JPanel(new BorderLayout()) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+                
+                GradientPaint gradient = new GradientPaint(
+                    0, 0, Color.decode("#0B192C"),
+                    getWidth(), getHeight(), Color.decode("#1E3E62")
+                );
+                g2d.setPaint(gradient);
+                g2d.fillRect(0, 0, getWidth(), getHeight());
+            }
+        };
+    }
+
+    private JPanel createContentPanel() {
+        JPanel panel = new JPanel(new BorderLayout()) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+                
+                // Semi-transparent background
+                g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.95f));
+                g2d.setColor(Color.decode("#ECF0F1"));
+                g2d.fillRect(0, 0, getWidth(), getHeight());
+            }
+        };
+        panel.setOpaque(false);
+        return panel;
+    }
+
+    private JPanel createModernSidebar() {
+        JPanel sidebarPanel = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+                
+                // Gradient background for sidebar
+                GradientPaint gradient = new GradientPaint(
+                    0, 0, Color.decode("#1E3E62"),
+                    0, getHeight(), Color.decode("#0B192C")
+                );
+                g2d.setPaint(gradient);
+                g2d.fillRect(0, 0, getWidth(), getHeight());
+                
+                // Subtle shadow effect
+                g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.1f));
+                g2d.setColor(Color.BLACK);
+                g2d.fillRect(getWidth() - 2, 0, 2, getHeight());
+            }
+        };
+        
+        sidebarPanel.setLayout(new BoxLayout(sidebarPanel, BoxLayout.Y_AXIS));
+        sidebarPanel.setPreferredSize(new Dimension(280, 800));
+        sidebarPanel.setOpaque(false);
+
+        // Modern app title with better typography
+        JLabel appTitleLabel = createModernTitle();
+        sidebarPanel.add(appTitleLabel);
+        
+        // Add some spacing
+        sidebarPanel.add(createVerticalSpace(20));
+
+        // Modern navigation buttons
+        JButton cadastroButton = createModernSidebarButton("👤", "Cadastro de Usuário");
+        JButton gerenciarUsuariosButton = createModernSidebarButton("👥", "Gerenciar Usuários");
+        JButton gerenciarProjetosButton = createModernSidebarButton("📋", "Gerenciar Projetos");
+
+        sidebarPanel.add(cadastroButton);
+        sidebarPanel.add(createVerticalSpace(8));
+        sidebarPanel.add(gerenciarUsuariosButton);
+        sidebarPanel.add(createVerticalSpace(8));
+        sidebarPanel.add(gerenciarProjetosButton);
+        
+        // Add flexible space at bottom
+        sidebarPanel.add(Box.createVerticalGlue());
+        
+        // Store buttons for action setup
+        cadastroButton.setName("cadastro");
+        gerenciarUsuariosButton.setName("usuarios");
+        gerenciarProjetosButton.setName("projetos");
+
+        return sidebarPanel;
+    }
+
+    private JLabel createModernTitle() {
+        JLabel titleLabel = new JLabel("<html><div style='text-align: center;'>" +
+            "<span style='font-size: 18px; font-weight: bold; color: #ECF0F1;'>SISTEMA DE</span><br>" +
+            "<span style='font-size: 20px; font-weight: bold; color: #FF6500;'>GESTÃO</span>" +
+            "</div></html>");
+        titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        titleLabel.setBorder(new EmptyBorder(30, 20, 20, 20));
+        titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        return titleLabel;
+    }
+
+    private JPanel createVerticalSpace(int height) {
+        JPanel space = new JPanel();
+        space.setOpaque(false);
+        space.setPreferredSize(new Dimension(0, height));
+        space.setMaximumSize(new Dimension(Integer.MAX_VALUE, height));
+        return space;
+    }
+
+    private void setupSidebarActions(JPanel sidebarPanel) {
+        Component[] components = sidebarPanel.getComponents();
+        for (Component comp : components) {
+            if (comp instanceof JButton) {
+                JButton button = (JButton) comp;
+                String name = button.getName();
+                if (name != null) {
+                    switch (name) {
+                        case "cadastro":
+                            button.addActionListener(e -> {
+                                clearFields();
+                                showPanel(cadastroPanel);
+                            });
+                            break;
+                        case "usuarios":
+                            button.addActionListener(e -> {
+                                showPanel(listaPanel);
+                                refreshUserList();
+                            });
+                            break;
+                        case "projetos":
+                            button.addActionListener(e -> showToast("Página de Gerenciar Projetos em construção!", "info"));
+                            break;
+                    }
+                }
+            }
+        }
     }
     
     // Método auxiliar para limpar os campos
@@ -141,27 +286,48 @@ public class MainFrame extends JFrame {
         senhaField.setText("");
     }
 
-    private JButton createSidebarButton(String text) {
-        JButton button = new JButton(text);
-        button.setAlignmentX(JButton.LEFT_ALIGNMENT);
-        button.setBackground(Color.decode("#1E3E62"));
-        button.setForeground(Color.decode("#ECF0F1"));
-        button.setFont(new Font("Sans-serif", Font.PLAIN, 14));
-        button.setFocusPainted(false);
-        button.setBorderPainted(false);
+    private JButton createModernSidebarButton(String icon, String text) {
+        JButton button = new JButton() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                // Background with rounded corners
+                if (getModel().isPressed()) {
+                    g2d.setColor(Color.decode("#FF6500"));
+                } else if (getModel().isRollover()) {
+                    g2d.setColor(new Color(255, 101, 0, 100));
+                } else {
+                    g2d.setColor(new Color(255, 255, 255, 20));
+                }
+                
+                g2d.fillRoundRect(10, 5, getWidth() - 20, getHeight() - 10, 12, 12);
+                
+                // Text and icon
+                g2d.setColor(Color.decode("#ECF0F1"));
+                g2d.setFont(new Font("Segoe UI", Font.BOLD, 16));
+                
+                // Draw icon
+                int iconX = 25;
+                int iconY = getHeight() / 2 + 5;
+                g2d.drawString(icon, iconX, iconY);
+                
+                // Draw text
+                int textX = iconX + 35;
+                int textY = getHeight() / 2 + 5;
+                g2d.drawString(text, textX, textY);
+            }
+        };
+        
+        button.setPreferredSize(new Dimension(260, 50));
+        button.setMaximumSize(new Dimension(260, 50));
+        button.setAlignmentX(Component.CENTER_ALIGNMENT);
         button.setContentAreaFilled(false);
-        button.setOpaque(true);
-        button.setHorizontalAlignment(SwingConstants.LEFT);
-        button.setBorder(new EmptyBorder(15, 30, 15, 10));
+        button.setBorderPainted(false);
+        button.setFocusPainted(false);
         button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        button.addMouseListener(new MouseAdapter() {
-            public void mouseEntered(MouseEvent e) {
-                button.setBackground(Color.decode("#1E3E62").brighter());
-            }
-            public void mouseExited(MouseEvent e) {
-                button.setBackground(Color.decode("#1E3E62"));
-            }
-        });
+        
         return button;
     }
 
@@ -173,17 +339,33 @@ public class MainFrame extends JFrame {
     }
 
     private JPanel createCadastroPanel() {
-        JPanel cadastroWrapper = new JPanel(new BorderLayout());
-        cadastroWrapper.setBackground(Color.decode("#ECF0F1"));
+        JPanel cadastroWrapper = new JPanel(new BorderLayout()) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                // Modern card background with shadow
+                g2d.setColor(new Color(0, 0, 0, 20));
+                g2d.fillRoundRect(5, 5, getWidth() - 10, getHeight() - 10, 20, 20);
+                
+                g2d.setColor(Color.WHITE);
+                g2d.fillRoundRect(0, 0, getWidth() - 10, getHeight() - 10, 20, 20);
+            }
+        };
+        cadastroWrapper.setOpaque(false);
+        cadastroWrapper.setPreferredSize(new Dimension(700, 600));
+        cadastroWrapper.setBorder(new EmptyBorder(30, 30, 30, 30));
 
-        JPanel formPanel = new JPanel(new GridLayout(0, 2, 10, 10));
-        formPanel.setBackground(Color.decode("#ECF0F1"));
-        formPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
+        JPanel formPanel = new JPanel(new GridLayout(0, 2, 15, 15));
+        formPanel.setOpaque(false);
 
-        JLabel titleLabel = new JLabel("Formulário de Cadastro");
-        titleLabel.setFont(new Font("Sans-serif", Font.BOLD, 22));
+        JLabel titleLabel = new JLabel("📝 Formulário de Cadastro");
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 28));
         titleLabel.setForeground(Color.decode("#0B192C"));
         titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        titleLabel.setBorder(new EmptyBorder(0, 0, 30, 0));
         
         cadastroWrapper.add(titleLabel, BorderLayout.NORTH);
         
@@ -202,18 +384,14 @@ public class MainFrame extends JFrame {
         formPanel.add(createIconLabel("Senha:", "🔒"));
         formPanel.add(senhaField);
 
-        JPanel buttonPanel = new JPanel(new GridLayout(1, 4, 10, 10));
-        buttonPanel.setBackground(Color.decode("#ECF0F1"));
+        JPanel buttonPanel = new JPanel(new GridLayout(1, 4, 15, 15));
+        buttonPanel.setOpaque(false);
+        buttonPanel.setBorder(new EmptyBorder(20, 0, 0, 0));
 
-        JButton saveButton = new JButton("💾 Salvar");
-        JButton findButton = new JButton("🔎 Buscar por ID");
-        JButton updateButton = new JButton("🔄 Atualizar");
-        JButton deleteButton = new JButton("🗑️ Excluir");
-        
-        styleActionButton(saveButton, Color.decode("#2ECC71"));
-        styleActionButton(findButton, Color.decode("#3498DB"));
-        styleActionButton(updateButton, Color.decode("#F1C40F"));
-        styleActionButton(deleteButton, Color.decode("#E74C3C"));
+        JButton saveButton = createModernActionButton("💾", "Salvar", Color.decode("#2ECC71"));
+        JButton findButton = createModernActionButton("🔎", "Buscar", Color.decode("#3498DB"));
+        JButton updateButton = createModernActionButton("🔄", "Atualizar", Color.decode("#F1C40F"));
+        JButton deleteButton = createModernActionButton("🗑️", "Excluir", Color.decode("#E74C3C"));
         
         buttonPanel.add(saveButton);
         buttonPanel.add(findButton);
@@ -236,17 +414,17 @@ public class MainFrame extends JFrame {
                     senhaField.getText()
                 );
                 usuarioDAO.create(novoUsuario);
-                showToast("Usuário salvo com sucesso!", Color.decode("#2ECC71"));
+                showToast("Usuário salvo com sucesso!", "success");
                 clearFields();
             } catch (Exception ex) {
-                showToast("Erro ao salvar usuário: " + ex.getMessage(), Color.decode("#E74C3C"));
+                showToast("Erro ao salvar usuário: " + ex.getMessage(), "error");
             }
         });
 
         findButton.addActionListener(e -> {
             String id = idField.getText();
             if (id.isEmpty()) {
-                showToast("Por favor, insira um ID.", Color.decode("#F1C40F"));
+                showToast("Por favor, insira um ID.", "warning");
                 return;
             }
             Usuario usuario = usuarioDAO.findById(id);
@@ -257,9 +435,9 @@ public class MainFrame extends JFrame {
                 cargoField.setText(usuario.getCargo());
                 loginField.setText(usuario.getLogin());
                 senhaField.setText(usuario.getSenha());
-                showToast("Usuário encontrado com sucesso!", Color.decode("#3498DB"));
+                showToast("Usuário encontrado com sucesso!", "info");
             } else {
-                showToast("Usuário não encontrado.", Color.decode("#E74C3C"));
+                showToast("Usuário não encontrado.", "error");
             }
         });
         
@@ -267,7 +445,7 @@ public class MainFrame extends JFrame {
             try {
                 String id = idField.getText();
                 if (id.isEmpty()) {
-                    showToast("Por favor, insira o ID do usuário para atualizar.", Color.decode("#F1C40F"));
+                    showToast("Por favor, insira o ID do usuário para atualizar.", "warning");
                     return;
                 }
                 
@@ -282,22 +460,22 @@ public class MainFrame extends JFrame {
                 );
                 
                 usuarioDAO.update(usuarioParaAtualizar);
-                showToast("Usuário atualizado com sucesso!", Color.decode("#F1C40F"));
+                showToast("Usuário atualizado com sucesso!", "success");
                 refreshUserList();
             } catch (Exception ex) {
-                showToast("Erro ao atualizar usuário: " + ex.getMessage(), Color.decode("#E74C3C"));
+                showToast("Erro ao atualizar usuário: " + ex.getMessage(), "error");
             }
         });
 
         deleteButton.addActionListener(e -> {
             String id = idField.getText();
             if (id.isEmpty()) {
-                showToast("Por favor, insira o ID do usuário para excluir.", Color.decode("#F1C40F"));
+                showToast("Por favor, insira o ID do usuário para excluir.", "warning");
                 return;
             }
             
             usuarioDAO.delete(id);
-            showToast("Usuário excluído com sucesso!", Color.decode("#E74C3C"));
+            showToast("Usuário excluído com sucesso!", "error");
             refreshUserList();
         });
         
@@ -312,23 +490,100 @@ public class MainFrame extends JFrame {
 
     private JLabel createIconLabel(String text, String iconText) {
         JLabel label = new JLabel(iconText + " " + text);
-        label.setFont(new Font("Sans-serif", Font.PLAIN, 14));
+        label.setFont(new Font("Segoe UI", Font.BOLD, 14));
         label.setForeground(Color.decode("#0B192C"));
+        label.setBorder(new EmptyBorder(0, 0, 5, 0));
         return label;
     }
 
+    private JButton createModernActionButton(String icon, String text, Color baseColor) {
+        JButton button = new JButton() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                Color bgColor = baseColor;
+                if (getModel().isPressed()) {
+                    bgColor = baseColor.darker();
+                } else if (getModel().isRollover()) {
+                    bgColor = baseColor.brighter();
+                }
+                
+                // Button background with rounded corners
+                g2d.setColor(bgColor);
+                g2d.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+                
+                // Button text
+                g2d.setColor(Color.WHITE);
+                g2d.setFont(new Font("Segoe UI", Font.BOLD, 12));
+                
+                String buttonText = icon + " " + text;
+                FontMetrics fm = g2d.getFontMetrics();
+                int textWidth = fm.stringWidth(buttonText);
+                int textHeight = fm.getAscent();
+                
+                int x = (getWidth() - textWidth) / 2;
+                int y = (getHeight() + textHeight) / 2 - 2;
+                
+                g2d.drawString(buttonText, x, y);
+            }
+        };
+        
+        button.setPreferredSize(new Dimension(120, 45));
+        button.setContentAreaFilled(false);
+        button.setBorderPainted(false);
+        button.setFocusPainted(false);
+        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        
+        return button;
+    }
+
     private JPanel createListaPanel() {
-        JPanel listaPanel = new JPanel(new BorderLayout());
-        listaPanel.setBackground(Color.decode("#ECF0F1"));
+        JPanel listaPanel = new JPanel(new BorderLayout()) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                // Modern card background with shadow
+                g2d.setColor(new Color(0, 0, 0, 15));
+                g2d.fillRoundRect(15, 15, getWidth() - 30, getHeight() - 30, 20, 20);
+                
+                g2d.setColor(Color.WHITE);
+                g2d.fillRoundRect(10, 10, getWidth() - 30, getHeight() - 30, 20, 20);
+            }
+        };
+        listaPanel.setOpaque(false);
+        listaPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
+        
+        // Modern title for the list
+        JLabel titleLabel = new JLabel("👥 Lista de Usuários");
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 24));
+        titleLabel.setForeground(Color.decode("#0B192C"));
+        titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        titleLabel.setBorder(new EmptyBorder(20, 0, 20, 0));
+        listaPanel.add(titleLabel, BorderLayout.NORTH);
+        
         String[] columnNames = {"ID", "Nome Completo", "Email", "CPF", "Login"};
         tableModel = new DefaultTableModel(columnNames, 0);
         userTable = new JTable(tableModel);
         
+        // Modern table styling
         userTable.setFillsViewportHeight(true);
-        userTable.setFont(new Font("Sans-serif", Font.PLAIN, 14));
+        userTable.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        userTable.setRowHeight(35);
+        userTable.setShowGrid(true);
+        userTable.setGridColor(Color.decode("#E8EAED"));
+        userTable.setSelectionBackground(Color.decode("#FF6500"));
+        userTable.setSelectionForeground(Color.WHITE);
+        
+        // Modern header styling
         userTable.getTableHeader().setBackground(Color.decode("#1E3E62"));
         userTable.getTableHeader().setForeground(Color.decode("#ECF0F1"));
-        userTable.getTableHeader().setFont(new Font("Sans-serif", Font.BOLD, 14));
+        userTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 14));
+        userTable.getTableHeader().setPreferredSize(new Dimension(0, 40));
         
         userTable.addMouseListener(new MouseAdapter() {
             public void mouseReleased(MouseEvent e) {
@@ -380,7 +635,7 @@ public class MainFrame extends JFrame {
                                 UsuarioDAO usuarioDAO = new UsuarioDAO();
                                 usuarioDAO.delete(id);
                                 refreshUserList();
-                                showToast("Usuário excluído com sucesso!", Color.decode("#E74C3C"));
+                                showToast("Usuário excluído com sucesso!", "error");
                             }
                         }
                     });
@@ -391,12 +646,23 @@ public class MainFrame extends JFrame {
         });
 
         JScrollPane scrollPane = new JScrollPane(userTable);
-        scrollPane.setBorder(new LineBorder(Color.decode("#0B192C"), 1, true));
-        listaPanel.add(scrollPane, BorderLayout.CENTER);
+        scrollPane.setBorder(new EmptyBorder(10, 10, 10, 10));
+        scrollPane.setOpaque(false);
+        scrollPane.getViewport().setOpaque(false);
         
-        JButton refreshListButton = new JButton("🔄 Atualizar Lista");
-        styleActionButton(refreshListButton, Color.decode("#3498DB"));
-        listaPanel.add(refreshListButton, BorderLayout.SOUTH);
+        JPanel tableContainer = new JPanel(new BorderLayout());
+        tableContainer.setOpaque(false);
+        tableContainer.add(scrollPane, BorderLayout.CENTER);
+        listaPanel.add(tableContainer, BorderLayout.CENTER);
+        
+        // Modern refresh button
+        JPanel buttonContainer = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        buttonContainer.setOpaque(false);
+        buttonContainer.setBorder(new EmptyBorder(10, 0, 10, 0));
+        
+        JButton refreshListButton = createModernActionButton("🔄", "Atualizar Lista", Color.decode("#3498DB"));
+        buttonContainer.add(refreshListButton);
+        listaPanel.add(buttonContainer, BorderLayout.SOUTH);
 
         refreshListButton.addActionListener(e -> refreshUserList());
 
@@ -419,50 +685,142 @@ public class MainFrame extends JFrame {
         }
     }
     
-    private void styleActionButton(JButton button, Color color) {
-        button.setPreferredSize(new Dimension(150, 40));
-        button.setBackground(color);
-        button.setForeground(Color.WHITE);
-        button.setFocusPainted(false);
-        button.setBorder(new LineBorder(color, 1, true));
-        button.setFont(new Font("Sans-serif", Font.BOLD, 14));
-        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        button.addMouseListener(new MouseAdapter() {
-            public void mouseEntered(MouseEvent e) {
-                button.setBackground(color.darker());
-            }
-            public void mouseExited(MouseEvent e) {
-                button.setBackground(color);
-            }
-        });
-    }
 
-    private void showToast(String message, Color color) {
+    private void showToast(String message, String type) {
         if (toastPanel != null) {
             this.remove(toastPanel);
         }
 
-        toastPanel = new JPanel();
-        toastPanel.setBackground(color);
-        toastPanel.setBorder(new EmptyBorder(10, 20, 10, 20));
+        // Modern toast container with shadow and rounded corners
+        JPanel toastWrapper = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                // Shadow effect
+                g2d.setColor(new Color(0, 0, 0, 30));
+                g2d.fillRoundRect(2, 2, getWidth() - 4, getHeight() - 4, 15, 15);
+                
+                // Main background
+                Color backgroundColor = getToastColor(type);
+                g2d.setColor(backgroundColor);
+                g2d.fillRoundRect(0, 0, getWidth() - 4, getHeight() - 4, 15, 15);
+            }
+        };
+        toastWrapper.setLayout(new BorderLayout());
+        toastWrapper.setOpaque(false);
+        toastWrapper.setBorder(new EmptyBorder(15, 25, 15, 25));
+        toastWrapper.setPreferredSize(new Dimension(400, 70));
         
-        JLabel toastLabel = new JLabel("<html><font color='#FFFFFF'>" + message + "</font></html>");
-        toastLabel.setFont(new Font("Sans-serif", Font.BOLD, 14));
-        toastPanel.add(toastLabel);
+        // Message content
+        JPanel messagePanel = new JPanel(new BorderLayout(15, 0));
+        messagePanel.setOpaque(false);
+        
+        String iconText = getToastIcon(type);
+        JLabel iconLabel = new JLabel(iconText);
+        iconLabel.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        iconLabel.setForeground(Color.WHITE);
+        messagePanel.add(iconLabel, BorderLayout.WEST);
+        
+        JLabel messageLabel = new JLabel(message);
+        messageLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        messageLabel.setForeground(Color.WHITE);
+        messagePanel.add(messageLabel, BorderLayout.CENTER);
+        
+        // Close button
+        JLabel closeLabel = new JLabel("✕");
+        closeLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        closeLabel.setForeground(Color.WHITE);
+        closeLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        closeLabel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                MainFrame.this.remove(toastPanel);
+                MainFrame.this.revalidate();
+                MainFrame.this.repaint();
+            }
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                closeLabel.setForeground(Color.LIGHT_GRAY);
+            }
+            @Override
+            public void mouseExited(MouseEvent e) {
+                closeLabel.setForeground(Color.WHITE);
+            }
+        });
+        messagePanel.add(closeLabel, BorderLayout.EAST);
+        
+        toastWrapper.add(messagePanel, BorderLayout.CENTER);
+
+        // Progress bar
+        JPanel progressBar = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                Color progressColor = getToastColor(type).darker();
+                g2d.setColor(progressColor);
+                g2d.fillRoundRect(0, 0, getWidth(), getHeight(), 5, 5);
+            }
+        };
+        progressBar.setPreferredSize(new Dimension(0, 4));
+        progressBar.setOpaque(false);
+        toastWrapper.add(progressBar, BorderLayout.SOUTH);
+
+        // Container for positioning
+        toastPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        toastPanel.setOpaque(false);
+        toastPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
+        toastPanel.add(toastWrapper);
         
         this.add(toastPanel, BorderLayout.SOUTH);
         this.revalidate();
         this.repaint();
         
-        Timer timer = new Timer(3000, new ActionListener() {
+        // Animation timer
+        final int duration = 4000;
+        final long startTime = System.currentTimeMillis();
+        Timer progressTimer = new Timer(50, new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                MainFrame.this.remove(toastPanel);
-                MainFrame.this.revalidate();
-                MainFrame.this.repaint();
+                long elapsedTime = System.currentTimeMillis() - startTime;
+                if (elapsedTime >= duration) {
+                    ((Timer) e.getSource()).stop();
+                    MainFrame.this.remove(toastPanel);
+                    MainFrame.this.revalidate();
+                    MainFrame.this.repaint();
+                } else {
+                    int width = (int) (toastWrapper.getWidth() * (1 - (double) elapsedTime / duration));
+                    progressBar.setPreferredSize(new Dimension(width, 4));
+                    progressBar.revalidate();
+                }
             }
         });
-        timer.setRepeats(false);
-        timer.start();
+        progressTimer.setRepeats(true);
+        progressTimer.start();
+    }
+
+    private Color getToastColor(String type) {
+        switch (type) {
+            case "success": return Color.decode("#2ECC71");
+            case "error": return Color.decode("#E74C3C");
+            case "warning": return Color.decode("#F1C40F");
+            case "info":
+            default: return Color.decode("#3498DB");
+        }
+    }
+
+    private String getToastIcon(String type) {
+        switch (type) {
+            case "success": return "✓";
+            case "error": return "✕";
+            case "warning": return "⚠";
+            case "info":
+            default: return "ℹ";
+        }
     }
 }
