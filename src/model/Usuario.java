@@ -4,7 +4,6 @@ import java.util.UUID;
 
 public class Usuario {
 
-    // Atributos
     private String id;
     private String nomeCompleto;
     private String cpf;
@@ -13,7 +12,7 @@ public class Usuario {
     private String login;
     private String senha;
 
-    // Construtor
+    // Construtor usado para criar um novo usuário
     public Usuario(String nomeCompleto, String cpf, String email, String cargo, String login, String senha) {
         this.id = UUID.randomUUID().toString();
         this.nomeCompleto = nomeCompleto;
@@ -24,7 +23,18 @@ public class Usuario {
         this.senha = senha;
     }
 
-    // Getters
+    // NOVO CONSTRUTOR para recriar o objeto a partir do banco de dados
+    public Usuario(String id, String nomeCompleto, String cpf, String email, String cargo, String login, String senha) {
+        this.id = id;
+        this.nomeCompleto = nomeCompleto;
+        this.cpf = cpf;
+        this.email = email;
+        this.cargo = cargo;
+        this.login = login;
+        this.senha = senha;
+    }
+
+    // Getters e Setters
     public String getId() {
         return id;
     }
@@ -53,7 +63,6 @@ public class Usuario {
         return senha;
     }
 
-    // Setters
     public void setNomeCompleto(String nomeCompleto) {
         this.nomeCompleto = nomeCompleto;
     }
