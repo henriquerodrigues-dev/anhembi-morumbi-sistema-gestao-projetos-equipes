@@ -35,6 +35,9 @@ import javax.swing.Timer;
 import javax.swing.SwingUtilities;
 import javax.swing.JLayeredPane;
 import java.awt.FlowLayout;
+import org.kordamp.ikonli.swing.FontIcon;
+import org.kordamp.ikonli.fontawesome5.FontAwesomeSolid;
+import org.kordamp.ikonli.Ikon;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
@@ -181,43 +184,38 @@ public class MainFrame extends JFrame {
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
                 Graphics2D g2d = (Graphics2D) g;
-                g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 
-                // Gradient background for sidebar
-                GradientPaint gradient = new GradientPaint(
-                    0, 0, Color.decode("#1E3E62"),
-                    0, getHeight(), Color.decode("#0B192C")
-                );
-                g2d.setPaint(gradient);
+                // Solid dark background
+                g2d.setColor(Color.decode("#1E3E62"));
                 g2d.fillRect(0, 0, getWidth(), getHeight());
                 
-                // Subtle shadow effect
-                g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.1f));
-                g2d.setColor(Color.BLACK);
-                g2d.fillRect(getWidth() - 2, 0, 2, getHeight());
+                // Subtle border
+                g2d.setColor(Color.decode("#0B192C"));
+                g2d.fillRect(getWidth() - 1, 0, 1, getHeight());
             }
         };
         
         sidebarPanel.setLayout(new BoxLayout(sidebarPanel, BoxLayout.Y_AXIS));
-        sidebarPanel.setPreferredSize(new Dimension(280, 800));
+        sidebarPanel.setPreferredSize(new Dimension(250, 800));
         sidebarPanel.setOpaque(false);
 
-        // Modern app title with better typography
-        JLabel appTitleLabel = createModernTitle();
-        sidebarPanel.add(appTitleLabel);
-        
-        // Add some spacing
-        sidebarPanel.add(createVerticalSpace(20));
+        // Compact title
+        JLabel titleLabel = new JLabel("SISTEMA DE GESTÃO");
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        titleLabel.setForeground(Color.WHITE);
+        titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        titleLabel.setBorder(new EmptyBorder(20, 10, 20, 10));
+        titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        sidebarPanel.add(titleLabel);
 
-        // Modern navigation buttons
-        JButton cadastroButton = createModernSidebarButton("👤", "Cadastro de Usuário");
-        JButton gerenciarUsuariosButton = createModernSidebarButton("👥", "Gerenciar Usuários");
-        JButton gerenciarProjetosButton = createModernSidebarButton("📋", "Gerenciar Projetos");
+        // Navigation buttons with Ikonli icons
+        JButton cadastroButton = createCompactSidebarButton(FontAwesomeSolid.USER_PLUS, "Cadastro de Usuário");
+        JButton gerenciarUsuariosButton = createCompactSidebarButton(FontAwesomeSolid.USERS, "Gerenciar Usuários");
+        JButton gerenciarProjetosButton = createCompactSidebarButton(FontAwesomeSolid.TASKS, "Gerenciar Projetos");
 
         sidebarPanel.add(cadastroButton);
-        sidebarPanel.add(createVerticalSpace(8));
         sidebarPanel.add(gerenciarUsuariosButton);
-        sidebarPanel.add(createVerticalSpace(8));
         sidebarPanel.add(gerenciarProjetosButton);
         
         // Add flexible space at bottom
@@ -231,17 +229,6 @@ public class MainFrame extends JFrame {
         return sidebarPanel;
     }
 
-    private JLabel createModernTitle() {
-        JLabel titleLabel = new JLabel("<html><div style='text-align: center;'>" +
-            "<span style='font-size: 18px; font-weight: bold; color: #FFFFFF;'>SISTEMA DE</span><br>" +
-            "<span style='font-size: 20px; font-weight: bold; color: #FF6500;'>GESTÃO</span>" +
-            "</div></html>");
-        titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        titleLabel.setBorder(new EmptyBorder(30, 20, 20, 20));
-        titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        titleLabel.setForeground(Color.WHITE); // Garantir cor branca
-        return titleLabel;
-    }
 
     private JPanel createVerticalSpace(int height) {
         JPanel space = new JPanel();
@@ -291,47 +278,58 @@ public class MainFrame extends JFrame {
         senhaField.setText("");
     }
 
-    private JButton createModernSidebarButton(String icon, String text) {
-        JButton button = new JButton() {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2d = (Graphics2D) g;
-                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                
-                // Background with rounded corners
-                if (getModel().isPressed()) {
-                    g2d.setColor(Color.decode("#FF6500"));
-                } else if (getModel().isRollover()) {
-                    g2d.setColor(new Color(255, 101, 0, 100));
-                } else {
-                    g2d.setColor(new Color(255, 255, 255, 20));
-                }
-                
-                g2d.fillRoundRect(10, 5, getWidth() - 20, getHeight() - 10, 12, 12);
-                
-                // Text and icon
-                g2d.setColor(Color.WHITE);
-                g2d.setFont(new Font("Segoe UI", Font.BOLD, 16));
-                
-                // Draw icon
-                int iconX = 25;
-                int iconY = getHeight() / 2 + 5;
-                g2d.drawString(icon, iconX, iconY);
-                
-                // Draw text
-                int textX = iconX + 35;
-                int textY = getHeight() / 2 + 5;
-                g2d.drawString(text, textX, textY);
-            }
-        };
+    private JButton createCompactSidebarButton(Ikon iconCode, String text) {
+        JButton button = new JButton();
+        button.setLayout(new BorderLayout(10, 0));
         
-        button.setPreferredSize(new Dimension(260, 50));
-        button.setMaximumSize(new Dimension(260, 50));
+        // Create Ikonli icon
+        JLabel iconLabel = new JLabel();
+        FontIcon icon = FontIcon.of(iconCode, 18, Color.WHITE);
+        iconLabel.setIcon(icon);
+        
+        // Create text label
+        JLabel textLabel = new JLabel(text);
+        textLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        textLabel.setForeground(Color.WHITE);
+        
+        // Add components to button
+        button.add(iconLabel, BorderLayout.WEST);
+        button.add(textLabel, BorderLayout.CENTER);
+        
+        // Style button
+        button.setPreferredSize(new Dimension(230, 45));
+        button.setMaximumSize(new Dimension(230, 45));
         button.setAlignmentX(Component.CENTER_ALIGNMENT);
         button.setContentAreaFilled(false);
         button.setBorderPainted(false);
         button.setFocusPainted(false);
         button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        button.setBorder(new EmptyBorder(8, 15, 8, 15));
+        
+        // Add hover effects
+        button.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                button.setOpaque(true);
+                button.setBackground(new Color(255, 101, 0, 50));
+                FontIcon newIcon = FontIcon.of(iconCode, 18, Color.decode("#FF6500"));
+                iconLabel.setIcon(newIcon);
+                textLabel.setForeground(Color.decode("#FF6500"));
+            }
+            
+            @Override
+            public void mouseExited(MouseEvent e) {
+                button.setOpaque(false);
+                FontIcon newIcon = FontIcon.of(iconCode, 18, Color.WHITE);
+                iconLabel.setIcon(newIcon);
+                textLabel.setForeground(Color.WHITE);
+            }
+            
+            @Override
+            public void mousePressed(MouseEvent e) {
+                button.setBackground(Color.decode("#FF6500"));
+            }
+        });
         
         return button;
     }
@@ -366,13 +364,23 @@ public class MainFrame extends JFrame {
         JPanel formPanel = new JPanel(new GridLayout(0, 2, 15, 15));
         formPanel.setOpaque(false);
 
-        JLabel titleLabel = new JLabel("📝 Formulário de Cadastro");
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 28));
-        titleLabel.setForeground(Color.decode("#0B192C"));
-        titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        titleLabel.setBorder(new EmptyBorder(0, 0, 30, 0));
+        // Create title with icon
+        JPanel titlePanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
+        titlePanel.setOpaque(false);
         
-        cadastroWrapper.add(titleLabel, BorderLayout.NORTH);
+        JLabel formIconLabel = new JLabel();
+        FontIcon formIcon = FontIcon.of(FontAwesomeSolid.USER_EDIT, 24, Color.decode("#0B192C"));
+        formIconLabel.setIcon(formIcon);
+        
+        JLabel titleText = new JLabel("Formulário de Cadastro");
+        titleText.setFont(new Font("Segoe UI", Font.BOLD, 28));
+        titleText.setForeground(Color.decode("#0B192C"));
+        
+        titlePanel.add(formIconLabel);
+        titlePanel.add(titleText);
+        titlePanel.setBorder(new EmptyBorder(0, 0, 30, 0));
+        
+        cadastroWrapper.add(titlePanel, BorderLayout.NORTH);
         
         formPanel.add(createIconLabel("ID (para busca, edição ou exclusão):", "🆔"));
         formPanel.add(idField);
@@ -393,10 +401,10 @@ public class MainFrame extends JFrame {
         buttonPanel.setOpaque(false);
         buttonPanel.setBorder(new EmptyBorder(20, 0, 0, 0));
 
-        JButton saveButton = createModernActionButton("💾", "Salvar", Color.decode("#2ECC71"));
-        JButton findButton = createModernActionButton("🔍", "Buscar", Color.decode("#3498DB"));
-        JButton updateButton = createModernActionButton("🔄", "Atualizar", Color.decode("#F1C40F"));
-        JButton deleteButton = createModernActionButton("🗑️", "Excluir", Color.decode("#E74C3C"));
+        JButton saveButton = createIconActionButton(FontAwesomeSolid.SAVE, "Salvar", Color.decode("#2ECC71"));
+        JButton findButton = createIconActionButton(FontAwesomeSolid.SEARCH, "Buscar", Color.decode("#3498DB"));
+        JButton updateButton = createIconActionButton(FontAwesomeSolid.EDIT, "Atualizar", Color.decode("#F1C40F"));
+        JButton deleteButton = createIconActionButton(FontAwesomeSolid.TRASH, "Excluir", Color.decode("#E74C3C"));
         
         buttonPanel.add(saveButton);
         buttonPanel.add(findButton);
@@ -501,45 +509,50 @@ public class MainFrame extends JFrame {
         return label;
     }
 
-    private JButton createModernActionButton(String icon, String text, Color baseColor) {
-        JButton button = new JButton() {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2d = (Graphics2D) g;
-                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                
-                Color bgColor = baseColor;
-                if (getModel().isPressed()) {
-                    bgColor = baseColor.darker();
-                } else if (getModel().isRollover()) {
-                    bgColor = baseColor.brighter();
-                }
-                
-                // Button background with rounded corners
-                g2d.setColor(bgColor);
-                g2d.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
-                
-                // Button text
-                g2d.setColor(Color.WHITE);
-                g2d.setFont(new Font("Segoe UI", Font.BOLD, 12));
-                
-                String buttonText = icon + " " + text;
-                FontMetrics fm = g2d.getFontMetrics();
-                int textWidth = fm.stringWidth(buttonText);
-                int textHeight = fm.getAscent();
-                
-                int x = (getWidth() - textWidth) / 2;
-                int y = (getHeight() + textHeight) / 2 - 2;
-                
-                g2d.drawString(buttonText, x, y);
-            }
-        };
+    private JButton createIconActionButton(Ikon iconCode, String text, Color baseColor) {
+        JButton button = new JButton();
+        button.setLayout(new FlowLayout(FlowLayout.CENTER, 5, 0));
         
+        // Create icon
+        JLabel iconLabel = new JLabel();
+        FontIcon icon = FontIcon.of(iconCode, 14, Color.WHITE);
+        iconLabel.setIcon(icon);
+        
+        // Create text label
+        JLabel textLabel = new JLabel(text);
+        textLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        textLabel.setForeground(Color.WHITE);
+        
+        // Add components
+        button.add(iconLabel);
+        button.add(textLabel);
+        
+        // Style button
         button.setPreferredSize(new Dimension(120, 45));
-        button.setContentAreaFilled(false);
+        button.setBackground(baseColor);
+        button.setOpaque(true);
         button.setBorderPainted(false);
         button.setFocusPainted(false);
         button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        button.setBorder(new LineBorder(baseColor, 1, true));
+        
+        // Add hover effects
+        button.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                button.setBackground(baseColor.brighter());
+            }
+            
+            @Override
+            public void mouseExited(MouseEvent e) {
+                button.setBackground(baseColor);
+            }
+            
+            @Override
+            public void mousePressed(MouseEvent e) {
+                button.setBackground(baseColor.darker());
+            }
+        });
         
         return button;
     }
@@ -563,13 +576,22 @@ public class MainFrame extends JFrame {
         listaPanel.setOpaque(false);
         listaPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
         
-        // Modern title for the list
-        JLabel titleLabel = new JLabel("👥 Lista de Usuários");
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 24));
-        titleLabel.setForeground(Color.decode("#0B192C"));
-        titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        titleLabel.setBorder(new EmptyBorder(20, 0, 20, 0));
-        listaPanel.add(titleLabel, BorderLayout.NORTH);
+        // Modern title for the list with icon
+        JPanel listTitlePanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
+        listTitlePanel.setOpaque(false);
+        
+        JLabel listIconLabel = new JLabel();
+        FontIcon listIcon = FontIcon.of(FontAwesomeSolid.USERS, 20, Color.decode("#0B192C"));
+        listIconLabel.setIcon(listIcon);
+        
+        JLabel listTitleText = new JLabel("Lista de Usuários");
+        listTitleText.setFont(new Font("Segoe UI", Font.BOLD, 24));
+        listTitleText.setForeground(Color.decode("#0B192C"));
+        
+        listTitlePanel.add(listIconLabel);
+        listTitlePanel.add(listTitleText);
+        listTitlePanel.setBorder(new EmptyBorder(20, 0, 20, 0));
+        listaPanel.add(listTitlePanel, BorderLayout.NORTH);
         
         String[] columnNames = {"ID", "Nome Completo", "Email", "CPF", "Login"};
         tableModel = new DefaultTableModel(columnNames, 0);
@@ -604,8 +626,11 @@ public class MainFrame extends JFrame {
                     popupMenu.setBackground(Color.WHITE);
                     popupMenu.setBorder(new LineBorder(Color.decode("#BDC3C7"), 1, true));
                     
-                    JMenuItem editItem = new JMenuItem("✏️ Editar Usuário");
-                    JMenuItem deleteItem = new JMenuItem("🗑️ Excluir Usuário");
+                    JMenuItem editItem = new JMenuItem("Editar Usuário");
+                    editItem.setIcon(FontIcon.of(FontAwesomeSolid.EDIT, 14, Color.decode("#0B192C")));
+                    
+                    JMenuItem deleteItem = new JMenuItem("Excluir Usuário");
+                    deleteItem.setIcon(FontIcon.of(FontAwesomeSolid.TRASH, 14, Color.decode("#E74C3C")));
                     
                     // Estilizar itens do menu
                     editItem.setFont(new Font("Segoe UI", Font.BOLD, 13));
@@ -694,7 +719,7 @@ public class MainFrame extends JFrame {
         buttonContainer.setOpaque(false);
         buttonContainer.setBorder(new EmptyBorder(10, 0, 10, 0));
         
-        JButton refreshListButton = createModernActionButton("🔄", "Atualizar Lista", Color.decode("#3498DB"));
+        JButton refreshListButton = createIconActionButton(FontAwesomeSolid.SYNC_ALT, "Atualizar Lista", Color.decode("#3498DB"));
         buttonContainer.add(refreshListButton);
         listaPanel.add(buttonContainer, BorderLayout.SOUTH);
 
@@ -804,12 +829,11 @@ public class MainFrame extends JFrame {
         JPanel contentPanel = new JPanel(new BorderLayout(12, 0));
         contentPanel.setOpaque(false);
         
-        // Ícone
-        String iconText = getToastIcon(type);
-        JLabel iconLabel = new JLabel(iconText);
-        iconLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
-        iconLabel.setForeground(Color.WHITE);
-        contentPanel.add(iconLabel, BorderLayout.WEST);
+        // Ícone usando Ikonli
+        JLabel toastIconLabel = new JLabel();
+        FontIcon toastIcon = getToastFontIcon(type);
+        toastIconLabel.setIcon(toastIcon);
+        contentPanel.add(toastIconLabel, BorderLayout.WEST);
         
         // Mensagem
         JLabel messageLabel = new JLabel(message);
@@ -879,13 +903,17 @@ public class MainFrame extends JFrame {
         }
     }
 
-    private String getToastIcon(String type) {
+    private FontIcon getToastFontIcon(String type) {
         switch (type) {
-            case "success": return "✅";
-            case "error": return "❌";
-            case "warning": return "⚠️";
+            case "success": 
+                return FontIcon.of(FontAwesomeSolid.CHECK_CIRCLE, 16, Color.WHITE);
+            case "error": 
+                return FontIcon.of(FontAwesomeSolid.TIMES_CIRCLE, 16, Color.WHITE);
+            case "warning": 
+                return FontIcon.of(FontAwesomeSolid.EXCLAMATION_TRIANGLE, 16, Color.WHITE);
             case "info":
-            default: return "ℹ️";
+            default: 
+                return FontIcon.of(FontAwesomeSolid.INFO_CIRCLE, 16, Color.WHITE);
         }
     }
 }
