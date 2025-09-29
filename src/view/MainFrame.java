@@ -41,6 +41,8 @@ import java.util.Locale;
 import java.awt.Cursor;
 import javax.swing.JPopupMenu;
 import javax.swing.JMenuItem;
+import javax.swing.JTextArea;
+import javax.swing.JScrollPane;
 import javax.swing.border.LineBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.CompoundBorder;
@@ -94,6 +96,9 @@ public class MainFrame extends JFrame {
     private JPanel listaPanel;
     private JPanel projetosPanel;
     private JPanel equipesPanel;
+    private JPanel homePanel;
+    private JPanel ajudaPanel;
+    private JPanel membrosPanel;
     private UsuarioDAO usuarioDAO;
     private ProjetoDAO projetoDAO;
     private EquipeDAO equipeDAO;
@@ -130,9 +135,9 @@ public class MainFrame extends JFrame {
         
         add(mainPanel);
 
-        // Initial view
-        showPanel(listaPanel);
-        refreshUserList();
+        // Initial view - mostrar tela inicial
+        homePanel = createHomePanel();
+        showPanel(homePanel);
 
         // Setup button actions
         setupSidebarActions(sidebarPanel);
@@ -376,24 +381,33 @@ public class MainFrame extends JFrame {
         sidebarPanel.add(titleLabel);
 
         // Navigation buttons with Ikonli icons
+        JButton homeButton = createCompactSidebarButton(FontAwesomeSolid.HOME, "Início");
         JButton cadastroButton = createCompactSidebarButton(FontAwesomeSolid.USER_PLUS, "Cadastro de Usuário");
         JButton gerenciarUsuariosButton = createCompactSidebarButton(FontAwesomeSolid.USERS, "Gerenciar Usuários");
         JButton gerenciarProjetosButton = createCompactSidebarButton(FontAwesomeSolid.TASKS, "Gerenciar Projetos");
         JButton gerenciarEquipesButton = createCompactSidebarButton(FontAwesomeSolid.USERS_COG, "Gerenciar Equipes");
+        JButton gerenciarMembrosButton = createCompactSidebarButton(FontAwesomeSolid.USER_COG, "Gerenciar Membros");
+        JButton ajudaButton = createCompactSidebarButton(FontAwesomeSolid.QUESTION_CIRCLE, "Ajuda");
 
+        sidebarPanel.add(homeButton);
         sidebarPanel.add(cadastroButton);
         sidebarPanel.add(gerenciarUsuariosButton);
         sidebarPanel.add(gerenciarProjetosButton);
         sidebarPanel.add(gerenciarEquipesButton);
+        sidebarPanel.add(gerenciarMembrosButton);
+        sidebarPanel.add(ajudaButton);
         
         // Add flexible space at bottom
         sidebarPanel.add(Box.createVerticalGlue());
         
         // Store buttons for action setup
+        homeButton.setName("home");
         cadastroButton.setName("cadastro");
         gerenciarUsuariosButton.setName("usuarios");
         gerenciarProjetosButton.setName("projetos");
         gerenciarEquipesButton.setName("equipes");
+        gerenciarMembrosButton.setName("membros");
+        ajudaButton.setName("ajuda");
 
         return sidebarPanel;
     }
@@ -415,6 +429,14 @@ public class MainFrame extends JFrame {
                 String name = button.getName();
                 if (name != null) {
                     switch (name) {
+                        case "home":
+                            button.addActionListener(e -> {
+                                if (homePanel == null) {
+                                    homePanel = createHomePanel();
+                                }
+                                showPanel(homePanel);
+                            });
+                            break;
                         case "cadastro":
                             button.addActionListener(e -> {
             clearFields();
@@ -441,6 +463,22 @@ public class MainFrame extends JFrame {
                                     equipesPanel = createEquipesPanel();
                                 }
                                 showPanel(equipesPanel);
+                            });
+                            break;
+                        case "membros":
+                            button.addActionListener(e -> {
+                                if (membrosPanel == null) {
+                                    membrosPanel = createMembrosPanel();
+                                }
+                                showPanel(membrosPanel);
+                            });
+                            break;
+                        case "ajuda":
+                            button.addActionListener(e -> {
+                                if (ajudaPanel == null) {
+                                    ajudaPanel = createAjudaPanel();
+                                }
+                                showPanel(ajudaPanel);
                             });
                             break;
                     }
@@ -1308,17 +1346,8 @@ public class MainFrame extends JFrame {
         dataInicioChooser.setLocale(new Locale("pt", "BR"));
         dataInicioChooser.getJCalendar().setLocale(new Locale("pt", "BR"));
         
-        // Abrir calendário automaticamente ao clicar
-        dataInicioChooser.getDateEditor().getUiComponent().addFocusListener(new FocusListener() {
-            @Override
-            public void focusGained(FocusEvent e) {
-                SwingUtilities.invokeLater(() -> {
-                    dataInicioChooser.getCalendarButton().doClick();
-                });
-            }
-            @Override
-            public void focusLost(FocusEvent e) {}
-        });
+        // Configurar abertura e fechamento automático do calendário
+        setupCalendarAutoClose(dataInicioChooser);
         
         dataTerminoChooser = new JDateChooser();
         dataTerminoChooser.setDateFormatString("dd/MM/yyyy");
@@ -1327,17 +1356,8 @@ public class MainFrame extends JFrame {
         dataTerminoChooser.setLocale(new Locale("pt", "BR"));
         dataTerminoChooser.getJCalendar().setLocale(new Locale("pt", "BR"));
         
-        // Abrir calendário automaticamente ao clicar
-        dataTerminoChooser.getDateEditor().getUiComponent().addFocusListener(new FocusListener() {
-            @Override
-            public void focusGained(FocusEvent e) {
-                SwingUtilities.invokeLater(() -> {
-                    dataTerminoChooser.getCalendarButton().doClick();
-                });
-            }
-            @Override
-            public void focusLost(FocusEvent e) {}
-        });
+        // Configurar abertura e fechamento automático do calendário
+        setupCalendarAutoClose(dataTerminoChooser);
         
         // Status combo box with default options
         String[] statusOptions = {"", "Pendente", "Em Andamento", "Concluído", "Cancelado", "Pausado"};
@@ -2914,6 +2934,43 @@ public class MainFrame extends JFrame {
         }
     }
 
+    /**
+     * Configura abertura e fechamento automático do calendário
+     */
+    private void setupCalendarAutoClose(JDateChooser dateChooser) {
+        // Abrir calendário automaticamente ao ganhar foco
+        dateChooser.getDateEditor().getUiComponent().addFocusListener(new FocusListener() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                SwingUtilities.invokeLater(() -> {
+                    dateChooser.getCalendarButton().doClick();
+                });
+            }
+            @Override
+            public void focusLost(FocusEvent e) {
+                // Fechar calendário ao perder foco
+                SwingUtilities.invokeLater(() -> {
+                    if (dateChooser.getJCalendar().isVisible()) {
+                        dateChooser.getJCalendar().setVisible(false);
+                    }
+                });
+            }
+        });
+        
+        // Adicionar listener para fechar ao clicar fora
+        dateChooser.getJCalendar().addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseExited(MouseEvent e) {
+                // Verificar se o mouse saiu da área do calendário
+                if (!dateChooser.getJCalendar().getBounds().contains(e.getPoint())) {
+                    SwingUtilities.invokeLater(() -> {
+                        dateChooser.getJCalendar().setVisible(false);
+                    });
+                }
+            }
+        });
+    }
+
     // Configurar busca de equipe em tempo real para membros
     private void setupEquipeSearchPopup(JTextField searchField, JPopupMenu popup) {
         searchField.getDocument().addDocumentListener(new DocumentListener() {
@@ -3007,5 +3064,286 @@ public class MainFrame extends JFrame {
         } else {
             popup.setVisible(false);
         }
+    }
+
+    /**
+     * Cria a tela inicial de boas-vindas
+     */
+    private JPanel createHomePanel() {
+        JPanel panel = new JPanel(new BorderLayout()) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                // Gradient background
+                GradientPaint gradient = new GradientPaint(0, 0, Color.decode("#0B192C"), 
+                                                         getWidth(), getHeight(), Color.decode("#1E3E62"));
+                g2d.setPaint(gradient);
+                g2d.fillRect(0, 0, getWidth(), getHeight());
+            }
+        };
+        panel.setOpaque(false);
+        panel.setBorder(new EmptyBorder(50, 50, 50, 50));
+
+        // Main content
+        JPanel contentPanel = new JPanel();
+        contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
+        contentPanel.setOpaque(false);
+
+        // Welcome title
+        JLabel welcomeTitle = new JLabel("Bem-vindo ao Sistema de Gestão");
+        welcomeTitle.setFont(new Font("Segoe UI", Font.BOLD, 36));
+        welcomeTitle.setForeground(Color.WHITE);
+        welcomeTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        JLabel subtitle = new JLabel("Projetos e Equipes");
+        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 24));
+        subtitle.setForeground(Color.decode("#ECF0F1"));
+        subtitle.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        // Description
+        JTextArea description = new JTextArea(
+            "Este sistema permite gerenciar usuários, projetos e equipes de forma integrada.\n\n" +
+            "Funcionalidades disponíveis:\n" +
+            "• Cadastro e gerenciamento de usuários\n" +
+            "• Criação e acompanhamento de projetos\n" +
+            "• Formação e administração de equipes\n" +
+            "• Atribuição de membros às equipes\n\n" +
+            "Navegue pelo menu lateral para acessar as diferentes funcionalidades."
+        );
+        description.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+        description.setForeground(Color.decode("#ECF0F1"));
+        description.setOpaque(false);
+        description.setEditable(false);
+        description.setLineWrap(true);
+        description.setWrapStyleWord(true);
+        description.setAlignmentX(Component.CENTER_ALIGNMENT);
+        description.setBorder(new EmptyBorder(30, 0, 30, 0));
+
+        // Menu guide
+        JPanel menuGuide = createMenuGuide();
+
+        contentPanel.add(welcomeTitle);
+        contentPanel.add(Box.createVerticalStrut(10));
+        contentPanel.add(subtitle);
+        contentPanel.add(description);
+        contentPanel.add(menuGuide);
+
+        panel.add(contentPanel, BorderLayout.CENTER);
+        return panel;
+    }
+
+    /**
+     * Cria guia do menu
+     */
+    private JPanel createMenuGuide() {
+        JPanel guidePanel = new JPanel(new GridLayout(2, 3, 20, 20));
+        guidePanel.setOpaque(false);
+        guidePanel.setBorder(new EmptyBorder(20, 0, 0, 0));
+
+        // Menu items
+        guidePanel.add(createMenuCard(FontAwesomeSolid.USER_PLUS, "Cadastrar Usuário", "Adicione novos usuários ao sistema"));
+        guidePanel.add(createMenuCard(FontAwesomeSolid.USERS, "Gerenciar Usuários", "Visualize e edite informações dos usuários"));
+        guidePanel.add(createMenuCard(FontAwesomeSolid.TASKS, "Gerenciar Projetos", "Crie e acompanhe projetos"));
+        guidePanel.add(createMenuCard(FontAwesomeSolid.USERS_COG, "Gerenciar Equipes", "Organize equipes de trabalho"));
+        guidePanel.add(createMenuCard(FontAwesomeSolid.USER_COG, "Gerenciar Membros", "Atribua usuários às equipes"));
+        guidePanel.add(createMenuCard(FontAwesomeSolid.QUESTION_CIRCLE, "Ajuda", "Obtenha ajuda sobre o sistema"));
+
+        return guidePanel;
+    }
+
+    /**
+     * Cria card do menu
+     */
+    private JPanel createMenuCard(FontAwesomeSolid icon, String title, String description) {
+        JPanel card = new JPanel(new BorderLayout()) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                // Card background
+                g2d.setColor(new Color(255, 255, 255, 30));
+                g2d.fillRoundRect(0, 0, getWidth(), getHeight(), 15, 15);
+                
+                // Border
+                g2d.setColor(new Color(255, 255, 255, 50));
+                g2d.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 15, 15);
+            }
+        };
+        card.setOpaque(false);
+        card.setBorder(new EmptyBorder(15, 15, 15, 15));
+
+        // Icon
+        JLabel iconLabel = new JLabel();
+        FontIcon fontIcon = FontIcon.of(icon, 32, Color.decode("#FF6500"));
+        iconLabel.setIcon(fontIcon);
+        iconLabel.setHorizontalAlignment(SwingConstants.CENTER);
+
+        // Title
+        JLabel titleLabel = new JLabel(title);
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        titleLabel.setForeground(Color.WHITE);
+        titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
+
+        // Description
+        JTextArea descArea = new JTextArea(description);
+        descArea.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        descArea.setForeground(Color.decode("#ECF0F1"));
+        descArea.setOpaque(false);
+        descArea.setEditable(false);
+        descArea.setLineWrap(true);
+        descArea.setWrapStyleWord(true);
+
+        JPanel textPanel = new JPanel(new BorderLayout());
+        textPanel.setOpaque(false);
+        textPanel.add(titleLabel, BorderLayout.NORTH);
+        textPanel.add(descArea, BorderLayout.CENTER);
+
+        card.add(iconLabel, BorderLayout.NORTH);
+        card.add(textPanel, BorderLayout.CENTER);
+
+        return card;
+    }
+
+    /**
+     * Cria tela de ajuda
+     */
+    private JPanel createAjudaPanel() {
+        JPanel panel = new JPanel(new BorderLayout()) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                // Card background
+                g2d.setColor(new Color(0, 0, 0, 20));
+                g2d.fillRoundRect(12, 12, getWidth() - 24, getHeight() - 24, 15, 15);
+                
+                g2d.setColor(Color.WHITE);
+                g2d.fillRoundRect(10, 10, getWidth() - 20, getHeight() - 20, 15, 15);
+            }
+        };
+        panel.setOpaque(false);
+        panel.setBorder(new EmptyBorder(30, 30, 30, 30));
+
+        // Title
+        JPanel titlePanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        titlePanel.setOpaque(false);
+        
+        JLabel iconLabel = new JLabel();
+        FontIcon icon = FontIcon.of(FontAwesomeSolid.QUESTION_CIRCLE, 24, Color.decode("#0B192C"));
+        iconLabel.setIcon(icon);
+        
+        JLabel titleText = new JLabel("Central de Ajuda");
+        titleText.setFont(new Font("Segoe UI", Font.BOLD, 28));
+        titleText.setForeground(Color.decode("#0B192C"));
+        
+        titlePanel.add(iconLabel);
+        titlePanel.add(Box.createHorizontalStrut(15));
+        titlePanel.add(titleText);
+
+        // Help content
+        JTextArea helpContent = new JTextArea(
+            "COMO USAR O SISTEMA:\n\n" +
+            
+            "1. CADASTRAR USUÁRIO:\n" +
+            "   • Preencha todos os campos obrigatórios\n" +
+            "   • O CPF será formatado automaticamente\n" +
+            "   • Use o botão de visualizar senha para conferir\n\n" +
+            
+            "2. GERENCIAR USUÁRIOS:\n" +
+            "   • Digite no campo de busca para filtrar em tempo real\n" +
+            "   • Selecione um usuário na tabela e clique 'Editar'\n" +
+            "   • Para excluir, selecione um ou mais usuários\n\n" +
+            
+            "3. GERENCIAR PROJETOS:\n" +
+            "   • Use 'Criar Novo' para adicionar projetos\n" +
+            "   • Selecione um projeto na tabela e clique 'Editar'\n" +
+            "   • O calendário abre automaticamente nos campos de data\n" +
+            "   • Busque gerentes digitando o nome\n\n" +
+            
+            "4. GERENCIAR EQUIPES:\n" +
+            "   • Crie equipes com nome e descrição\n" +
+            "   • Use o menu de contexto (botão direito) para ações rápidas\n\n" +
+            
+            "5. GERENCIAR MEMBROS:\n" +
+            "   • Busque equipes e usuários em tempo real\n" +
+            "   • Adicione ou remova membros das equipes\n\n" +
+            
+            "DICAS:\n" +
+            "• Todas as buscas funcionam em tempo real\n" +
+            "• Use Ctrl+Clique para seleções múltiplas\n" +
+            "• Os campos obrigatórios são validados automaticamente\n" +
+            "• Mensagens de confirmação aparecem para ações importantes"
+        );
+        
+        helpContent.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        helpContent.setForeground(Color.decode("#2C3E50"));
+        helpContent.setOpaque(false);
+        helpContent.setEditable(false);
+        helpContent.setLineWrap(true);
+        helpContent.setWrapStyleWord(true);
+
+        JScrollPane scrollPane = new JScrollPane(helpContent);
+        scrollPane.setOpaque(false);
+        scrollPane.getViewport().setOpaque(false);
+        scrollPane.setBorder(new EmptyBorder(20, 0, 0, 0));
+
+        panel.add(titlePanel, BorderLayout.NORTH);
+        panel.add(scrollPane, BorderLayout.CENTER);
+
+        return panel;
+    }
+
+    /**
+     * Cria tela separada para gerenciamento de membros
+     */
+    private JPanel createMembrosPanel() {
+        JPanel panel = new JPanel(new BorderLayout()) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                // Card background
+                g2d.setColor(new Color(0, 0, 0, 20));
+                g2d.fillRoundRect(12, 12, getWidth() - 24, getHeight() - 24, 15, 15);
+                
+                g2d.setColor(Color.WHITE);
+                g2d.fillRoundRect(10, 10, getWidth() - 20, getHeight() - 20, 15, 15);
+            }
+        };
+        panel.setOpaque(false);
+        panel.setBorder(new EmptyBorder(30, 30, 30, 30));
+
+        // Title
+        JPanel titlePanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        titlePanel.setOpaque(false);
+        
+        JLabel iconLabel = new JLabel();
+        FontIcon icon = FontIcon.of(FontAwesomeSolid.USER_COG, 24, Color.decode("#0B192C"));
+        iconLabel.setIcon(icon);
+        
+        JLabel titleText = new JLabel("Gerenciamento de Membros");
+        titleText.setFont(new Font("Segoe UI", Font.BOLD, 28));
+        titleText.setForeground(Color.decode("#0B192C"));
+        
+        titlePanel.add(iconLabel);
+        titlePanel.add(Box.createHorizontalStrut(15));
+        titlePanel.add(titleText);
+
+        // Member management panel (reuse the existing one)
+        JPanel memberManagement = createMemberManagementPanel();
+
+        panel.add(titlePanel, BorderLayout.NORTH);
+        panel.add(memberManagement, BorderLayout.CENTER);
+
+        return panel;
     }
 }
