@@ -21,6 +21,7 @@ import util.ValidadorUtil;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Vector;
 import java.awt.Color;
 import java.awt.Font;
@@ -84,6 +85,8 @@ public class MainFrame extends JFrame {
     private JPopupMenu gerentePopup;
     private JTable userTable;
     private DefaultTableModel tableModel;
+    private JTable projetoTable;
+    private DefaultTableModel projetoTableModel;
     private JPanel contentPanel;
     private JPanel toastOverlay;
     private java.util.List<String> activeToasts = new java.util.ArrayList<>();
@@ -894,66 +897,11 @@ public class MainFrame extends JFrame {
             showToast("Busca realizada! Use o botão Editar para carregar no formulário.", "info");
         });
         
-        editButton.addActionListener(e -> {
-            String searchTerm = searchField.getText().trim();
-            if (searchTerm.isEmpty()) {
-                showToast("Digite algo para editar", "warning");
-                return;
-            }
-            
-            Usuario usuario = buscarUsuarioUniversal(searchTerm);
-            if (usuario != null) {
-                // Preencher campos no formulário de cadastro
-                idField.setText(usuario.getId());
-                nomeField.setText(usuario.getNomeCompleto());
-                cpfField.setText(ValidadorUtil.formatarCPF(usuario.getCpf()));
-                emailField.setText(usuario.getEmail());
-                cargoField.setText(usuario.getCargo());
-                loginField.setText(usuario.getLogin());
-                senhaField.setText(usuario.getSenha());
-                
-                // Ir para o painel de cadastro
-                showPanel(cadastroPanel);
-                showToast("Usuário carregado para edição!", "success");
-            } else {
-                showToast("Usuário não encontrado!", "error");
-            }
-        });
+        // Editar usuário selecionado na tabela (apenas um por vez)
+        editButton.addActionListener(e -> editarUsuarioSelecionado());
         
-        deleteButton.addActionListener(e -> {
-            String searchTerm = searchField.getText().trim();
-            if (searchTerm.isEmpty()) {
-                showToast("Digite algo para excluir", "warning");
-                return;
-            }
-            
-            Usuario usuario = buscarUsuarioUniversal(searchTerm);
-            if (usuario != null) {
-                String[] options = {"Sim, Excluir", "Cancelar"};
-                int result = JOptionPane.showOptionDialog(
-                    this,
-                    "ATENÇÃO: Esta ação não pode ser desfeita!\n\n" +
-                    "Deseja realmente excluir o usuário?\n\n" +
-                    "Nome: " + usuario.getNomeCompleto() + "\n" +
-                    "ID: " + usuario.getId(),
-                    "Confirmar Exclusão de Usuário",
-                    JOptionPane.YES_NO_OPTION,
-                    JOptionPane.WARNING_MESSAGE,
-                    null,
-                    options,
-                    options[1]
-                );
-                
-                if (result == JOptionPane.YES_OPTION) {
-                    usuarioDAO.delete(usuario.getId());
-                    refreshUserListRealTime();
-                    searchField.setText("");
-                    showToast("Usuário excluído com sucesso!", "success");
-                }
-            } else {
-                showToast("Usuário não encontrado!", "error");
-            }
-        });
+        // Excluir usuários selecionados na tabela (permite múltiplos)
+        deleteButton.addActionListener(e -> excluirUsuariosSelecionados());
         
         JPanel headerPanel = new JPanel(new BorderLayout());
         headerPanel.setOpaque(false);
@@ -1265,14 +1213,14 @@ public class MainFrame extends JFrame {
 
     private FontIcon getToastFontIcon(String type) {
         switch (type) {
-            case "success": 
+            case "success":
                 return FontIcon.of(FontAwesomeSolid.CHECK_CIRCLE, 16, Color.WHITE);
-            case "error": 
+            case "error":
                 return FontIcon.of(FontAwesomeSolid.TIMES_CIRCLE, 16, Color.WHITE);
-            case "warning": 
+            case "warning":
                 return FontIcon.of(FontAwesomeSolid.EXCLAMATION_TRIANGLE, 16, Color.WHITE);
             case "info":
-            default: 
+            default:
                 return FontIcon.of(FontAwesomeSolid.INFO_CIRCLE, 16, Color.WHITE);
         }
     }
@@ -1424,38 +1372,58 @@ public class MainFrame extends JFrame {
         buttonPanel.setOpaque(false);
         buttonPanel.setBorder(new EmptyBorder(15, 0, 0, 0));
 
-        JButton salvarProjetoBtn = createIconActionButton(FontAwesomeSolid.PLUS, "Criar Novo", Color.decode("#27AE60"));
-        JButton buscarProjetoBtn = createIconActionButton(FontAwesomeSolid.SEARCH, "Buscar", Color.decode("#3498DB"));
-        JButton atualizarProjetoBtn = createIconActionButton(FontAwesomeSolid.EDIT, "Editar/Salvar", Color.decode("#F39C12"));
+        // Botões com funções separadas e claras
+        JButton criarProjetoBtn = createIconActionButton(FontAwesomeSolid.PLUS, "Criar Novo", Color.decode("#27AE60"));
+        JButton salvarProjetoBtn = createIconActionButton(FontAwesomeSolid.SAVE, "Salvar", Color.decode("#27AE60"));
+        JButton editarProjetoBtn = createIconActionButton(FontAwesomeSolid.EDIT, "Editar", Color.decode("#F39C12"));
         JButton excluirProjetoBtn = createIconActionButton(FontAwesomeSolid.TRASH, "Excluir", Color.decode("#E74C3C"));
         JButton limparProjetoBtn = createIconActionButton(FontAwesomeSolid.ERASER, "Limpar", Color.decode("#95A5A6"));
 
-        buttonPanel.add(salvarProjetoBtn);
-        buttonPanel.add(buscarProjetoBtn);
-        buttonPanel.add(atualizarProjetoBtn);
+        // Inicialmente, mostrar apenas Criar e Editar (Salvar aparece após editar)
+        buttonPanel.add(criarProjetoBtn);
+        buttonPanel.add(editarProjetoBtn);
         buttonPanel.add(excluirProjetoBtn);
         buttonPanel.add(limparProjetoBtn);
 
-        // Button actions
-        salvarProjetoBtn.addActionListener(e -> {
+        /**
+         * Ações dos botões com funções bem definidas
+         */
+        
+        // Criar novo projeto (limpa campos e permite inserção)
+        criarProjetoBtn.addActionListener(e -> {
             salvarProjetoModerno(projetoNomeField, projetoDescricaoField);
             refreshProjetoListRealTime();
         });
 
-        buscarProjetoBtn.addActionListener(e -> {
-            buscarProjetoModerno(projetoIdField, projetoNomeField, projetoDescricaoField);
-            refreshProjetoListRealTime();
-        });
-
-        atualizarProjetoBtn.addActionListener(e -> {
+        // Salvar alterações de um projeto em edição
+        salvarProjetoBtn.addActionListener(e -> {
             atualizarProjetoModerno(projetoIdField, projetoNomeField, projetoDescricaoField);
             refreshProjetoListRealTime();
+            
+            // Voltar ao modo criar após salvar
+            buttonPanel.remove(salvarProjetoBtn);
+            buttonPanel.add(criarProjetoBtn, 0);
+            buttonPanel.revalidate();
+            buttonPanel.repaint();
+            
+            // Limpar campos
+            projetoIdField.setText("");
+            projetoNomeField.setText("");
+            projetoDescricaoField.setText("");
+            dataInicioChooser.setDate(null);
+            dataTerminoChooser.setDate(null);
+            statusComboBox.setSelectedIndex(0);
+            gerenteSearchField.setText("");
         });
 
-        excluirProjetoBtn.addActionListener(e -> {
-            excluirProjetoModerno(projetoIdField);
-            refreshProjetoListRealTime();
-        });
+        // Editar projeto selecionado na tabela
+        editarProjetoBtn.addActionListener(e -> editarProjetoSelecionado(
+            buttonPanel, criarProjetoBtn, salvarProjetoBtn, 
+            projetoIdField, projetoNomeField, projetoDescricaoField
+        ));
+
+        // Excluir projetos selecionados na tabela (permite múltiplos)
+        excluirProjetoBtn.addActionListener(e -> excluirProjetosSelecionados());
 
         limparProjetoBtn.addActionListener(e -> {
             projetoIdField.setText("");
@@ -1485,10 +1453,10 @@ public class MainFrame extends JFrame {
         tableTitle.setForeground(Color.decode("#0B192C"));
         tableTitle.setBorder(new EmptyBorder(0, 0, 15, 0));
         
-        // Create table
+        // Create table (usar variáveis de instância)
         String[] colunasProjeto = {"ID", "Nome", "Descrição", "Data Início", "Data Término", "Status", "Gerente"};
-        DefaultTableModel projetoTableModel = new DefaultTableModel(colunasProjeto, 0);
-        JTable projetoTable = new JTable(projetoTableModel);
+        this.projetoTableModel = new DefaultTableModel(colunasProjeto, 0);
+        this.projetoTable = new JTable(this.projetoTableModel);
         
         // Style table
         projetoTable.setFont(new Font("Segoe UI", Font.PLAIN, 12));
@@ -1765,7 +1733,7 @@ public class MainFrame extends JFrame {
                             if (table.getModel() instanceof DefaultTableModel) {
                                 DefaultTableModel model = (DefaultTableModel) table.getModel();
                                 refreshProjetoList(model);
-                                break;
+                break;
                             }
                         }
                     }
@@ -2097,20 +2065,50 @@ public class MainFrame extends JFrame {
         return tableWrapper;
     }
     
+    /**
+     * Cria painel melhorado para gerenciamento de membros
+     * Interface mais organizada e intuitiva
+     */
     private JPanel createMemberManagementPanel() {
-        JPanel memberPanel = new JPanel(new BorderLayout());
+        JPanel memberPanel = new JPanel(new BorderLayout()) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                // Card background with shadow
+                g2d.setColor(new Color(0, 0, 0, 10));
+                g2d.fillRoundRect(5, 5, getWidth() - 10, getHeight() - 10, 12, 12);
+                
+                g2d.setColor(Color.decode("#F8F9FA"));
+                g2d.fillRoundRect(3, 3, getWidth() - 6, getHeight() - 6, 12, 12);
+            }
+        };
         memberPanel.setOpaque(false);
-        memberPanel.setBorder(new EmptyBorder(15, 0, 0, 0));
+        memberPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
         
-        // Title
+        // Title with icon
+        JPanel titlePanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        titlePanel.setOpaque(false);
+        
+        JLabel iconLabel = new JLabel();
+        FontIcon icon = FontIcon.of(FontAwesomeSolid.USERS_COG, 20, Color.decode("#0B192C"));
+        iconLabel.setIcon(icon);
+        
         JLabel memberTitle = new JLabel("Gerenciamento de Membros");
-        memberTitle.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        memberTitle.setFont(new Font("Segoe UI", Font.BOLD, 18));
         memberTitle.setForeground(Color.decode("#0B192C"));
-        memberTitle.setBorder(new EmptyBorder(0, 0, 10, 0));
         
-        // Form
-        JPanel memberForm = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
+        titlePanel.add(iconLabel);
+        titlePanel.add(Box.createHorizontalStrut(10));
+        titlePanel.add(memberTitle);
+        titlePanel.setBorder(new EmptyBorder(0, 0, 15, 0));
+        
+        // Form organizado em grid
+        JPanel memberForm = new JPanel(new GridLayout(3, 2, 15, 10));
         memberForm.setOpaque(false);
+        memberForm.setBorder(new EmptyBorder(10, 0, 15, 0));
         
         JLabel equipeIdLabel = new JLabel("Buscar Equipe:");
         equipeIdLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
@@ -2137,12 +2135,20 @@ public class MainFrame extends JFrame {
         JButton adicionarMembroBtn = createIconActionButton(FontAwesomeSolid.USER_PLUS, "Adicionar", Color.decode("#27AE60"));
         JButton removerMembroBtn = createIconActionButton(FontAwesomeSolid.USER_MINUS, "Remover", Color.decode("#E74C3C"));
         
-        memberForm.add(equipeIdLabel);
+        // Adicionar campos ao grid de forma organizada
+        memberForm.add(createFieldLabel("Selecionar Equipe:", FontAwesomeSolid.USERS));
         memberForm.add(memberEquipeSearchField);
-        memberForm.add(usuarioIdLabel);
+        memberForm.add(createFieldLabel("Selecionar Usuário:", FontAwesomeSolid.USER));
         memberForm.add(memberUsuarioSearchField);
-        memberForm.add(adicionarMembroBtn);
-        memberForm.add(removerMembroBtn);
+        
+        // Painel de botões centralizado
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
+        buttonPanel.setOpaque(false);
+        buttonPanel.add(adicionarMembroBtn);
+        buttonPanel.add(removerMembroBtn);
+        
+        memberForm.add(new JLabel()); // Espaço vazio
+        memberForm.add(buttonPanel);
         
         // Button actions
         adicionarMembroBtn.addActionListener(e -> {
@@ -2166,7 +2172,7 @@ public class MainFrame extends JFrame {
                 memberEquipeSearchField.setText("");
                 memberUsuarioSearchField.setText("");
                 refreshEquipeListRealTime();
-            } else {
+                } else {
                 showToast(erro, "error");
             }
         });
@@ -2197,7 +2203,8 @@ public class MainFrame extends JFrame {
             }
         });
         
-        memberPanel.add(memberTitle, BorderLayout.NORTH);
+        // Montar painel final
+        memberPanel.add(titlePanel, BorderLayout.NORTH);
         memberPanel.add(memberForm, BorderLayout.CENTER);
         
         return memberPanel;
@@ -2457,7 +2464,7 @@ public class MainFrame extends JFrame {
         
         if (found) {
             gerentePopup.show(gerenteSearchField, 0, gerenteSearchField.getHeight());
-        } else {
+                } else {
             gerentePopup.setVisible(false);
         }
     }
@@ -2552,50 +2559,359 @@ public class MainFrame extends JFrame {
         return "";
     }
 
-    // Método para filtrar usuários em tempo real
+    /**
+     * Filtra usuários na tabela em tempo real conforme o usuário digita
+     * Busca por: nome, email, CPF (apenas números) e login
+     */
     private void filtrarUsuariosEmTempoReal(String searchTerm) {
         SwingUtilities.invokeLater(() -> {
+            // Limpar tabela
             tableModel.setRowCount(0);
             
+            // Se campo vazio, mostrar todos os usuários
             if (searchTerm.isEmpty()) {
-                // Se não há termo de busca, mostrar todos
                 refreshUserList();
                 return;
             }
             
+            // Buscar usuários que correspondem ao termo
             List<Usuario> usuarios = usuarioDAO.findAll();
-            boolean found = false;
+            List<Usuario> usuariosEncontrados = buscarUsuariosPorTermo(usuarios, searchTerm);
             
-            for (Usuario usuario : usuarios) {
-                // Usar o mesmo algoritmo de busca universal
-                if (usuario.getId().equals(searchTerm) ||
-                    usuario.getNomeCompleto().toLowerCase().contains(searchTerm.toLowerCase()) ||
-                    usuario.getEmail().toLowerCase().contains(searchTerm.toLowerCase()) ||
-                    usuario.getCpf().replaceAll("[^0-9]", "").contains(searchTerm.replaceAll("[^0-9]", "")) ||
-                    usuario.getLogin().toLowerCase().contains(searchTerm.toLowerCase())) {
-                    
-                    Vector<Object> row = new Vector<>();
-                    row.add(usuario.getId());
-                    row.add(usuario.getNomeCompleto());
-                    row.add(usuario.getEmail());
-                    row.add(usuario.getCpf());
-                    row.add(usuario.getLogin());
-                    tableModel.addRow(row);
-                    found = true;
+            // Adicionar usuários encontrados à tabela
+            if (usuariosEncontrados.isEmpty()) {
+                adicionarLinhaUsuarioNaoEncontrado();
+            } else {
+                for (Usuario usuario : usuariosEncontrados) {
+                    adicionarUsuarioNaTabela(usuario);
+                }
+            }
+        });
+    }
+
+    /**
+     * Busca usuários que correspondem ao termo de pesquisa
+     */
+    private List<Usuario> buscarUsuariosPorTermo(List<Usuario> usuarios, String searchTerm) {
+        List<Usuario> encontrados = new ArrayList<>();
+        String termo = searchTerm.toLowerCase();
+        
+        for (Usuario usuario : usuarios) {
+            if (usuarioCorrespondeAoTermo(usuario, termo)) {
+                encontrados.add(usuario);
+            }
+        }
+        return encontrados;
+    }
+
+    /**
+     * Verifica se o usuário corresponde ao termo de busca
+     */
+    private boolean usuarioCorrespondeAoTermo(Usuario usuario, String termo) {
+        return usuario.getNomeCompleto().toLowerCase().contains(termo) ||
+               usuario.getEmail().toLowerCase().contains(termo) ||
+               usuario.getCpf().replaceAll("[^0-9]", "").contains(termo.replaceAll("[^0-9]", "")) ||
+               usuario.getLogin().toLowerCase().contains(termo);
+    }
+
+    /**
+     * Adiciona um usuário na tabela
+     */
+    private void adicionarUsuarioNaTabela(Usuario usuario) {
+        Vector<Object> row = new Vector<>();
+        row.add(usuario.getId());
+        row.add(usuario.getNomeCompleto());
+        row.add(usuario.getEmail());
+        row.add(usuario.getCpf());
+        row.add(usuario.getLogin());
+        tableModel.addRow(row);
+    }
+
+    /**
+     * Adiciona linha informativa quando nenhum usuário é encontrado
+     */
+    private void adicionarLinhaUsuarioNaoEncontrado() {
+        Vector<Object> row = new Vector<>();
+        row.add("-");
+        row.add("Nenhum usuário encontrado");
+        row.add("-");
+        row.add("-");
+        row.add("-");
+        tableModel.addRow(row);
+    }
+
+    /**
+     * Configura busca em tempo real no campo de pesquisa
+     */
+    private void setupBuscaTempoReal(JTextField searchField) {
+        searchField.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) { 
+                filtrarUsuariosEmTempoReal(searchField.getText()); 
+            }
+            @Override
+            public void removeUpdate(DocumentEvent e) { 
+                filtrarUsuariosEmTempoReal(searchField.getText()); 
+            }
+            @Override
+            public void changedUpdate(DocumentEvent e) { 
+                filtrarUsuariosEmTempoReal(searchField.getText()); 
+            }
+        });
+    }
+
+    /**
+     * Edita o usuário selecionado na tabela (apenas um por vez)
+     */
+    private void editarUsuarioSelecionado() {
+        int selectedRow = userTable.getSelectedRow();
+        
+        if (selectedRow == -1) {
+            showToast("Selecione um usuário na tabela para editar", "warning");
+            return;
+        }
+        
+        // Verificar se é uma linha válida (não é a linha "nenhum usuário encontrado")
+        String userId = (String) tableModel.getValueAt(selectedRow, 0);
+        if (userId.equals("-")) {
+            showToast("Selecione um usuário válido para editar", "warning");
+            return;
+        }
+        
+        // Buscar usuário pelo ID
+        Usuario usuario = usuarioDAO.findById(userId);
+        if (usuario != null) {
+            // Preencher campos no formulário de cadastro
+            idField.setText(usuario.getId());
+            nomeField.setText(usuario.getNomeCompleto());
+            cpfField.setText(ValidadorUtil.formatarCPF(usuario.getCpf()));
+            emailField.setText(usuario.getEmail());
+            cargoField.setText(usuario.getCargo());
+            loginField.setText(usuario.getLogin());
+            senhaField.setText(usuario.getSenha());
+            
+            // Ir para o painel de cadastro
+            showPanel(cadastroPanel);
+            showToast("Usuário carregado para edição!", "success");
+        } else {
+            showToast("Erro ao carregar usuário!", "error");
+        }
+    }
+
+    /**
+     * Exclui os usuários selecionados na tabela (permite múltiplos)
+     */
+    private void excluirUsuariosSelecionados() {
+        int[] selectedRows = userTable.getSelectedRows();
+        
+        if (selectedRows.length == 0) {
+            showToast("Selecione um ou mais usuários na tabela para excluir", "warning");
+            return;
+        }
+        
+        // Coletar IDs válidos dos usuários selecionados
+        List<String> idsParaExcluir = new ArrayList<>();
+        List<String> nomesParaExcluir = new ArrayList<>();
+        
+        for (int row : selectedRows) {
+            String userId = (String) tableModel.getValueAt(row, 0);
+            String userName = (String) tableModel.getValueAt(row, 1);
+            
+            // Verificar se é uma linha válida
+            if (!userId.equals("-")) {
+                idsParaExcluir.add(userId);
+                nomesParaExcluir.add(userName);
+            }
+        }
+        
+        if (idsParaExcluir.isEmpty()) {
+            showToast("Nenhum usuário válido selecionado", "warning");
+            return;
+        }
+        
+        // Confirmar exclusão
+        String mensagem = idsParaExcluir.size() == 1 ? 
+            "Deseja realmente excluir o usuário?\n\n" + nomesParaExcluir.get(0) :
+            "Deseja realmente excluir " + idsParaExcluir.size() + " usuários?\n\n" + 
+            String.join("\n", nomesParaExcluir);
+        
+        String[] options = {"Sim, Excluir", "Cancelar"};
+        int result = JOptionPane.showOptionDialog(
+            this,
+            "ATENÇÃO: Esta ação não pode ser desfeita!\n\n" + mensagem,
+            "Confirmar Exclusão de Usuário(s)",
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.WARNING_MESSAGE,
+            null,
+            options,
+            options[1]
+        );
+        
+        if (result == JOptionPane.YES_OPTION) {
+            // Excluir usuários
+            int excluidos = 0;
+            for (String userId : idsParaExcluir) {
+                try {
+                    usuarioDAO.delete(userId);
+                    excluidos++;
+                } catch (Exception e) {
+                    showToast("Erro ao excluir usuário ID: " + userId, "error");
                 }
             }
             
-            if (!found && !searchTerm.isEmpty()) {
-                // Adicionar linha informativa
-                Vector<Object> row = new Vector<>();
-                row.add("-");
-                row.add("Nenhum usuário encontrado");
-                row.add("-");
-                row.add("-");
-                row.add("-");
-                tableModel.addRow(row);
+            // Atualizar lista e mostrar resultado
+            refreshUserListRealTime();
+            if (excluidos > 0) {
+                String mensagemSucesso = excluidos == 1 ? 
+                    "Usuário excluído com sucesso!" :
+                    excluidos + " usuários excluídos com sucesso!";
+                showToast(mensagemSucesso, "success");
             }
-        });
+        }
+    }
+
+    /**
+     * Edita o projeto selecionado na tabela (apenas um por vez)
+     */
+    private void editarProjetoSelecionado(JPanel buttonPanel, JButton criarBtn, JButton salvarBtn,
+                                         JTextField idField, JTextField nomeField, JTextField descricaoField) {
+        // Verificar se há uma tabela de projetos e se há seleção
+        if (projetoTable == null) {
+            showToast("Tabela de projetos não encontrada", "error");
+            return;
+        }
+        
+        int selectedRow = projetoTable.getSelectedRow();
+        if (selectedRow == -1) {
+            showToast("Selecione um projeto na tabela para editar", "warning");
+            return;
+        }
+        
+        // Obter dados do projeto selecionado
+        String projetoId = (String) projetoTableModel.getValueAt(selectedRow, 0);
+        String projetoNome = (String) projetoTableModel.getValueAt(selectedRow, 1);
+        String projetoDescricao = (String) projetoTableModel.getValueAt(selectedRow, 2);
+        
+        // Verificar se é uma linha válida
+        if (projetoId == null || projetoId.equals("-")) {
+            showToast("Selecione um projeto válido para editar", "warning");
+            return;
+        }
+        
+        // Preencher campos do formulário
+        idField.setText(projetoId);
+        nomeField.setText(projetoNome);
+        descricaoField.setText(projetoDescricao);
+        
+        // Buscar dados completos do projeto
+        controller.ProjetoController projetoController = new controller.ProjetoController();
+        Projeto projeto = projetoController.buscarProjeto(projetoId);
+        
+        if (projeto != null) {
+            // Preencher campos de data e outros
+            if (projeto.getDataInicio() != null) {
+                // Converter LocalDate para Date
+                java.util.Date dataInicio = java.sql.Date.valueOf(projeto.getDataInicio());
+                dataInicioChooser.setDate(dataInicio);
+            }
+            if (projeto.getDataTerminoPrevista() != null) {
+                // Converter LocalDate para Date
+                java.util.Date dataTermino = java.sql.Date.valueOf(projeto.getDataTerminoPrevista());
+                dataTerminoChooser.setDate(dataTermino);
+            }
+            if (projeto.getStatus() != null) {
+                statusComboBox.setSelectedItem(projeto.getStatus());
+            }
+            if (projeto.getGerenteResponsavel() != null) {
+                // Usar o gerente responsável diretamente
+                gerenteSearchField.setText(projeto.getGerenteResponsavel().getNomeCompleto());
+            }
+        }
+        
+        // Trocar botão Criar por Salvar
+        buttonPanel.remove(criarBtn);
+        buttonPanel.add(salvarBtn, 0);
+        buttonPanel.revalidate();
+        buttonPanel.repaint();
+        
+        showToast("Projeto carregado para edição! Use 'Salvar' para confirmar alterações.", "success");
+    }
+
+    /**
+     * Exclui os projetos selecionados na tabela (permite múltiplos)
+     */
+    private void excluirProjetosSelecionados() {
+        if (projetoTable == null) {
+            showToast("Tabela de projetos não encontrada", "error");
+            return;
+        }
+        
+        int[] selectedRows = projetoTable.getSelectedRows();
+        if (selectedRows.length == 0) {
+            showToast("Selecione um ou mais projetos na tabela para excluir", "warning");
+            return;
+        }
+        
+        // Coletar IDs e nomes dos projetos selecionados
+        List<String> idsParaExcluir = new ArrayList<>();
+        List<String> nomesParaExcluir = new ArrayList<>();
+        
+        for (int row : selectedRows) {
+            String projetoId = (String) projetoTableModel.getValueAt(row, 0);
+            String projetoNome = (String) projetoTableModel.getValueAt(row, 1);
+            
+            if (projetoId != null && !projetoId.equals("-")) {
+                idsParaExcluir.add(projetoId);
+                nomesParaExcluir.add(projetoNome);
+            }
+        }
+        
+        if (idsParaExcluir.isEmpty()) {
+            showToast("Nenhum projeto válido selecionado", "warning");
+            return;
+        }
+        
+        // Confirmar exclusão
+        String mensagem = idsParaExcluir.size() == 1 ? 
+            "Deseja realmente excluir o projeto?\n\n" + nomesParaExcluir.get(0) :
+            "Deseja realmente excluir " + idsParaExcluir.size() + " projetos?\n\n" + 
+            String.join("\n", nomesParaExcluir);
+        
+        String[] options = {"Sim, Excluir", "Cancelar"};
+        int result = JOptionPane.showOptionDialog(
+            this,
+            "ATENÇÃO: Esta ação não pode ser desfeita!\n\n" + mensagem,
+            "Confirmar Exclusão de Projeto(s)",
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.WARNING_MESSAGE,
+            null,
+            options,
+            options[1]
+        );
+        
+        if (result == JOptionPane.YES_OPTION) {
+            // Excluir projetos
+            controller.ProjetoController projetoController = new controller.ProjetoController();
+            int excluidos = 0;
+            
+            for (String projetoId : idsParaExcluir) {
+                try {
+                    projetoController.excluirProjeto(projetoId);
+                    excluidos++;
+                } catch (Exception e) {
+                    showToast("Erro ao excluir projeto ID: " + projetoId, "error");
+                }
+            }
+            
+            // Atualizar lista e mostrar resultado
+            refreshProjetoListRealTime();
+            if (excluidos > 0) {
+                String mensagemSucesso = excluidos == 1 ? 
+                    "Projeto excluído com sucesso!" :
+                    excluidos + " projetos excluídos com sucesso!";
+                showToast(mensagemSucesso, "success");
+            }
+        }
     }
 
     // Configurar busca de equipe em tempo real para membros
