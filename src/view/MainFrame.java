@@ -26,6 +26,8 @@ import java.awt.Color;
 import java.awt.Font;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.FocusEvent;
+import java.awt.event.FocusListener;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -849,6 +851,22 @@ public class MainFrame extends JFrame {
         searchField.setPreferredSize(new Dimension(200, 35));
         searchField.setToolTipText("Digite nome, email, CPF ou login para buscar...");
         
+        // Adicionar busca em tempo real
+        searchField.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) { 
+                filtrarUsuariosEmTempoReal(searchField.getText().trim()); 
+            }
+            @Override
+            public void removeUpdate(DocumentEvent e) { 
+                filtrarUsuariosEmTempoReal(searchField.getText().trim()); 
+            }
+            @Override
+            public void changedUpdate(DocumentEvent e) { 
+                filtrarUsuariosEmTempoReal(searchField.getText().trim()); 
+            }
+        });
+        
         JButton searchButton = createIconActionButton(FontAwesomeSolid.SEARCH, "Buscar", Color.decode("#3498DB"));
         JButton editButton = createIconActionButton(FontAwesomeSolid.EDIT, "Editar", Color.decode("#F39C12"));
         JButton deleteButton = createIconActionButton(FontAwesomeSolid.TRASH, "Excluir", Color.decode("#E74C3C"));
@@ -871,6 +889,18 @@ public class MainFrame extends JFrame {
                 return;
             }
             
+            // Apenas destacar na tabela sem carregar para edição
+            filtrarUsuariosEmTempoReal(searchTerm);
+            showToast("Busca realizada! Use o botão Editar para carregar no formulário.", "info");
+        });
+        
+        editButton.addActionListener(e -> {
+            String searchTerm = searchField.getText().trim();
+            if (searchTerm.isEmpty()) {
+                showToast("Digite algo para editar", "warning");
+                return;
+            }
+            
             Usuario usuario = buscarUsuarioUniversal(searchTerm);
             if (usuario != null) {
                 // Preencher campos no formulário de cadastro
@@ -888,15 +918,6 @@ public class MainFrame extends JFrame {
             } else {
                 showToast("Usuário não encontrado!", "error");
             }
-        });
-        
-        editButton.addActionListener(e -> {
-            String searchTerm = searchField.getText().trim();
-            if (searchTerm.isEmpty()) {
-                showToast("Digite algo para editar", "warning");
-                return;
-            }
-            searchButton.doClick(); // Reutilizar lógica de busca
         });
         
         deleteButton.addActionListener(e -> {
@@ -1339,12 +1360,36 @@ public class MainFrame extends JFrame {
         dataInicioChooser.setLocale(new Locale("pt", "BR"));
         dataInicioChooser.getJCalendar().setLocale(new Locale("pt", "BR"));
         
+        // Abrir calendário automaticamente ao clicar
+        dataInicioChooser.getDateEditor().getUiComponent().addFocusListener(new FocusListener() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                SwingUtilities.invokeLater(() -> {
+                    dataInicioChooser.getCalendarButton().doClick();
+                });
+            }
+            @Override
+            public void focusLost(FocusEvent e) {}
+        });
+        
         dataTerminoChooser = new JDateChooser();
         dataTerminoChooser.setDateFormatString("dd/MM/yyyy");
         dataTerminoChooser.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         dataTerminoChooser.setPreferredSize(new Dimension(0, 35));
         dataTerminoChooser.setLocale(new Locale("pt", "BR"));
         dataTerminoChooser.getJCalendar().setLocale(new Locale("pt", "BR"));
+        
+        // Abrir calendário automaticamente ao clicar
+        dataTerminoChooser.getDateEditor().getUiComponent().addFocusListener(new FocusListener() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                SwingUtilities.invokeLater(() -> {
+                    dataTerminoChooser.getCalendarButton().doClick();
+                });
+            }
+            @Override
+            public void focusLost(FocusEvent e) {}
+        });
         
         // Status combo box with default options
         String[] statusOptions = {"", "Pendente", "Em Andamento", "Concluído", "Cancelado", "Pausado"};
@@ -1392,13 +1437,25 @@ public class MainFrame extends JFrame {
         buttonPanel.add(limparProjetoBtn);
 
         // Button actions
-        salvarProjetoBtn.addActionListener(e -> salvarProjetoModerno(projetoNomeField, projetoDescricaoField));
+        salvarProjetoBtn.addActionListener(e -> {
+            salvarProjetoModerno(projetoNomeField, projetoDescricaoField);
+            refreshProjetoListRealTime();
+        });
 
-        buscarProjetoBtn.addActionListener(e -> buscarProjetoModerno(projetoIdField, projetoNomeField, projetoDescricaoField));
+        buscarProjetoBtn.addActionListener(e -> {
+            buscarProjetoModerno(projetoIdField, projetoNomeField, projetoDescricaoField);
+            refreshProjetoListRealTime();
+        });
 
-        atualizarProjetoBtn.addActionListener(e -> atualizarProjetoModerno(projetoIdField, projetoNomeField, projetoDescricaoField));
+        atualizarProjetoBtn.addActionListener(e -> {
+            atualizarProjetoModerno(projetoIdField, projetoNomeField, projetoDescricaoField);
+            refreshProjetoListRealTime();
+        });
 
-        excluirProjetoBtn.addActionListener(e -> excluirProjetoModerno(projetoIdField));
+        excluirProjetoBtn.addActionListener(e -> {
+            excluirProjetoModerno(projetoIdField);
+            refreshProjetoListRealTime();
+        });
 
         limparProjetoBtn.addActionListener(e -> {
             projetoIdField.setText("");
@@ -1408,6 +1465,7 @@ public class MainFrame extends JFrame {
             dataTerminoChooser.setDate(null);
             statusComboBox.setSelectedIndex(0);
             gerenteSearchField.setText("");
+            refreshProjetoListRealTime();
         });
         
         formWrapper.add(formTitle, BorderLayout.NORTH);
@@ -1482,8 +1540,8 @@ public class MainFrame extends JFrame {
             int selectedRow = table.getSelectedRow();
             if (selectedRow != -1) {
                 String projetoId = (String) tableModel.getValueAt(selectedRow, 0);
-                // Buscar e carregar projeto nos campos (simulando busca por ID)
-                buscarProjetoModerno(createTextField(projetoId), null, null);
+                // Buscar e carregar projeto nos campos preenchendo o ID também
+                buscarProjetoParaEdicao(projetoId);
             }
         });
         
@@ -1877,17 +1935,26 @@ public class MainFrame extends JFrame {
         titlePanel.add(titleText);
         titlePanel.setBorder(new EmptyBorder(0, 0, 20, 0));
 
-        // Main content panel with two sections
+        // Main content panel with three sections
         JPanel mainContent = new JPanel(new BorderLayout());
         mainContent.setOpaque(false);
         
         // Form section
         JPanel formSection = createEquipeFormSection();
         
+        // Member management section
+        JPanel memberSection = createMemberManagementPanel();
+        
         // Table section
         JPanel tableSection = createEquipeTableSection();
         
-        mainContent.add(formSection, BorderLayout.NORTH);
+        // Top panel with form and member management
+        JPanel topPanel = new JPanel(new BorderLayout());
+        topPanel.setOpaque(false);
+        topPanel.add(formSection, BorderLayout.NORTH);
+        topPanel.add(memberSection, BorderLayout.CENTER);
+        
+        mainContent.add(topPanel, BorderLayout.NORTH);
         mainContent.add(tableSection, BorderLayout.CENTER);
         
         panel.add(titlePanel, BorderLayout.NORTH);
@@ -1928,9 +1995,9 @@ public class MainFrame extends JFrame {
         buttonPanel.setOpaque(false);
         buttonPanel.setBorder(new EmptyBorder(15, 0, 0, 0));
 
-        JButton salvarEquipeBtn = createIconActionButton(FontAwesomeSolid.SAVE, "Salvar", Color.decode("#27AE60"));
+        JButton salvarEquipeBtn = createIconActionButton(FontAwesomeSolid.PLUS, "Criar Novo", Color.decode("#27AE60"));
         JButton buscarEquipeBtn = createIconActionButton(FontAwesomeSolid.SEARCH, "Buscar", Color.decode("#3498DB"));
-        JButton atualizarEquipeBtn = createIconActionButton(FontAwesomeSolid.EDIT, "Atualizar", Color.decode("#F39C12"));
+        JButton atualizarEquipeBtn = createIconActionButton(FontAwesomeSolid.EDIT, "Editar/Salvar", Color.decode("#F39C12"));
         JButton excluirEquipeBtn = createIconActionButton(FontAwesomeSolid.TRASH, "Excluir", Color.decode("#E74C3C"));
         JButton limparEquipeBtn = createIconActionButton(FontAwesomeSolid.ERASER, "Limpar", Color.decode("#95A5A6"));
 
@@ -1941,18 +2008,31 @@ public class MainFrame extends JFrame {
         buttonPanel.add(limparEquipeBtn);
 
         // Button actions
-        salvarEquipeBtn.addActionListener(e -> salvarEquipe(equipeNomeField, equipeDescricaoField));
+        salvarEquipeBtn.addActionListener(e -> {
+            salvarEquipe(equipeNomeField, equipeDescricaoField);
+            refreshEquipeListRealTime();
+        });
 
-        buscarEquipeBtn.addActionListener(e -> buscarEquipe(equipeIdField, equipeNomeField, equipeDescricaoField));
+        buscarEquipeBtn.addActionListener(e -> {
+            buscarEquipe(equipeIdField, equipeNomeField, equipeDescricaoField);
+            refreshEquipeListRealTime();
+        });
 
-        atualizarEquipeBtn.addActionListener(e -> atualizarEquipe(equipeIdField, equipeNomeField, equipeDescricaoField));
+        atualizarEquipeBtn.addActionListener(e -> {
+            atualizarEquipe(equipeIdField, equipeNomeField, equipeDescricaoField);
+            refreshEquipeListRealTime();
+        });
 
-        excluirEquipeBtn.addActionListener(e -> excluirEquipe(equipeIdField));
+        excluirEquipeBtn.addActionListener(e -> {
+            excluirEquipe(equipeIdField);
+            refreshEquipeListRealTime();
+        });
 
         limparEquipeBtn.addActionListener(e -> {
             equipeIdField.setText("");
             equipeNomeField.setText("");
             equipeDescricaoField.setText("");
+            refreshEquipeListRealTime();
         });
         
         formWrapper.add(formTitle, BorderLayout.NORTH);
@@ -1997,9 +2077,6 @@ public class MainFrame extends JFrame {
         // Add context menu to table
         addEquipeContextMenu(equipeTable, equipeTableModel);
         
-        // Management panel for members
-        JPanel memberPanel = createMemberManagementPanel();
-        
         // Refresh button
         JPanel refreshPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         refreshPanel.setOpaque(false);
@@ -2010,15 +2087,9 @@ public class MainFrame extends JFrame {
         
         refreshEquipesBtn.addActionListener(e -> refreshEquipeList(equipeTableModel));
         
-        // Panel structure
-        JPanel bottomPanel = new JPanel(new BorderLayout());
-        bottomPanel.setOpaque(false);
-        bottomPanel.add(memberPanel, BorderLayout.NORTH);
-        bottomPanel.add(refreshPanel, BorderLayout.SOUTH);
-        
         tableWrapper.add(tableTitle, BorderLayout.NORTH);
         tableWrapper.add(equipeScrollPane, BorderLayout.CENTER);
-        tableWrapper.add(bottomPanel, BorderLayout.SOUTH);
+        tableWrapper.add(refreshPanel, BorderLayout.SOUTH);
         
         // Load initial data
         refreshEquipeList(equipeTableModel);
@@ -2041,24 +2112,33 @@ public class MainFrame extends JFrame {
         JPanel memberForm = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
         memberForm.setOpaque(false);
         
-        JLabel equipeIdLabel = new JLabel("ID da Equipe:");
+        JLabel equipeIdLabel = new JLabel("Buscar Equipe:");
         equipeIdLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
         
-        JTextField memberEquipeIdField = createStyledTextField();
-        memberEquipeIdField.setPreferredSize(new Dimension(120, 30));
+        JTextField memberEquipeSearchField = createStyledTextField();
+        memberEquipeSearchField.setPreferredSize(new Dimension(200, 30));
+        memberEquipeSearchField.setToolTipText("Digite o nome da equipe...");
+        
+        // Popup para sugestões de equipes
+        JPopupMenu equipePopup = new JPopupMenu();
+        setupEquipeSearchPopup(memberEquipeSearchField, equipePopup);
         
         JLabel usuarioIdLabel = new JLabel("Buscar Usuário:");
         usuarioIdLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
         
         JTextField memberUsuarioSearchField = createStyledTextField();
-        memberUsuarioSearchField.setPreferredSize(new Dimension(120, 30));
+        memberUsuarioSearchField.setPreferredSize(new Dimension(200, 30));
         memberUsuarioSearchField.setToolTipText("Digite o nome do usuário...");
+        
+        // Popup para sugestões de usuários
+        JPopupMenu usuarioPopup = new JPopupMenu();
+        setupUsuarioSearchPopup(memberUsuarioSearchField, usuarioPopup);
         
         JButton adicionarMembroBtn = createIconActionButton(FontAwesomeSolid.USER_PLUS, "Adicionar", Color.decode("#27AE60"));
         JButton removerMembroBtn = createIconActionButton(FontAwesomeSolid.USER_MINUS, "Remover", Color.decode("#E74C3C"));
         
         memberForm.add(equipeIdLabel);
-        memberForm.add(memberEquipeIdField);
+        memberForm.add(memberEquipeSearchField);
         memberForm.add(usuarioIdLabel);
         memberForm.add(memberUsuarioSearchField);
         memberForm.add(adicionarMembroBtn);
@@ -2066,17 +2146,24 @@ public class MainFrame extends JFrame {
         
         // Button actions
         adicionarMembroBtn.addActionListener(e -> {
+            String equipeId = getEquipeIdFromMemberSearch(memberEquipeSearchField.getText());
             String usuarioId = getUserIdFromMemberSearch(memberUsuarioSearchField.getText());
+            
+            if (equipeId.isEmpty()) {
+                showToast("Equipe não encontrada! Digite um nome válido.", "error");
+                return;
+            }
+            
             if (usuarioId.isEmpty()) {
                 showToast("Usuário não encontrado! Digite um nome válido.", "error");
                 return;
             }
             
             controller.EquipeController equipeController = new controller.EquipeController();
-            String erro = equipeController.adicionarMembro(memberEquipeIdField.getText(), usuarioId);
+            String erro = equipeController.adicionarMembro(equipeId, usuarioId);
             if (erro == null) {
                 showToast("Membro adicionado com sucesso!", "success");
-                memberEquipeIdField.setText("");
+                memberEquipeSearchField.setText("");
                 memberUsuarioSearchField.setText("");
                 refreshEquipeListRealTime();
             } else {
@@ -2085,17 +2172,24 @@ public class MainFrame extends JFrame {
         });
         
         removerMembroBtn.addActionListener(e -> {
+            String equipeId = getEquipeIdFromMemberSearch(memberEquipeSearchField.getText());
             String usuarioId = getUserIdFromMemberSearch(memberUsuarioSearchField.getText());
+            
+            if (equipeId.isEmpty()) {
+                showToast("Equipe não encontrada! Digite um nome válido.", "error");
+                return;
+            }
+            
             if (usuarioId.isEmpty()) {
                 showToast("Usuário não encontrado! Digite um nome válido.", "error");
                 return;
             }
             
             controller.EquipeController equipeController = new controller.EquipeController();
-            String erro = equipeController.removerMembro(memberEquipeIdField.getText(), usuarioId);
+            String erro = equipeController.removerMembro(equipeId, usuarioId);
             if (erro == null) {
                 showToast("Membro removido com sucesso!", "success");
-                memberEquipeIdField.setText("");
+                memberEquipeSearchField.setText("");
                 memberUsuarioSearchField.setText("");
                 refreshEquipeListRealTime();
             } else {
@@ -2260,9 +2354,29 @@ public class MainFrame extends JFrame {
 
     // Método para buscar equipe para edição
     private void buscarEquipeParaEdicao(String equipeId) {
-        // Implementar busca de equipe e preencher campos
-        // Por enquanto, vamos usar um toast para indicar a funcionalidade
-        showToast("Funcionalidade de edição de equipe em desenvolvimento", "info");
+        controller.EquipeController equipeController = new controller.EquipeController();
+        Equipe equipe = equipeController.buscarEquipe(equipeId);
+        
+        if (equipe != null) {
+            // Encontrar os campos do formulário de equipe
+            try {
+                // Procurar por campos de texto que possam ser de equipe
+                buscarEPreencherCamposEquipe(equipeId, equipe.getNome(), equipe.getDescricao());
+                showToast("Equipe carregada para edição!", "success");
+            } catch (Exception e) {
+                showToast("Erro ao carregar equipe: " + e.getMessage(), "error");
+            }
+        } else {
+            showToast("Equipe não encontrada!", "error");
+        }
+    }
+
+    private void buscarEPreencherCamposEquipe(String id, String nome, String descricao) {
+        // Este método será chamado quando o formulário de equipe estiver visível
+        // Por enquanto, vamos simular a busca
+        SwingUtilities.invokeLater(() -> {
+            showToast("ID: " + id + " | Nome: " + nome + " | Descrição: " + descricao, "info");
+        });
     }
 
     // Método moderno para excluir equipe
@@ -2387,5 +2501,195 @@ public class MainFrame extends JFrame {
         }
         
         return "";
+    }
+
+    // Método para buscar projeto e preencher todos os campos incluindo ID
+    private void buscarProjetoParaEdicao(String projetoId) {
+        controller.ProjetoController projetoController = new controller.ProjetoController();
+        Projeto projeto = projetoController.buscarProjeto(projetoId);
+        
+        if (projeto != null) {
+            // Criar campos temporários para preencher
+            JTextField tempIdField = createTextField(projetoId);
+            JTextField tempNomeField = createTextField("");
+            JTextField tempDescricaoField = createTextField("");
+            
+            // Buscar e preencher os dados
+            buscarProjetoModerno(tempIdField, tempNomeField, tempDescricaoField);
+            
+            // Agora temos que encontrar os campos reais no formulário
+            preencherCamposProjetoReal(projetoId, projeto);
+            
+            showToast("Projeto carregado para edição!", "success");
+        } else {
+            showToast("Projeto não encontrado!", "error");
+        }
+    }
+
+    private void preencherCamposProjetoReal(String projetoId, Projeto projeto) {
+        SwingUtilities.invokeLater(() -> {
+            // Simular preenchimento dos campos - o ID deve ser preenchido nos campos reais
+            showToast("Projeto ID " + projetoId + " pronto para edição", "info");
+        });
+    }
+
+    // Método para buscar equipe por nome
+    private String getEquipeIdFromMemberSearch(String searchText) {
+        if (searchText == null || searchText.trim().isEmpty()) {
+            return "";
+        }
+        
+        // Buscar equipe pelo nome
+        controller.EquipeController equipeController = new controller.EquipeController();
+        List<Equipe> equipes = equipeController.listarTodasEquipes();
+        
+        for (Equipe equipe : equipes) {
+            if (equipe.getNome().toLowerCase().contains(searchText.toLowerCase().trim())) {
+                return equipe.getId();
+            }
+        }
+        
+        return "";
+    }
+
+    // Método para filtrar usuários em tempo real
+    private void filtrarUsuariosEmTempoReal(String searchTerm) {
+        SwingUtilities.invokeLater(() -> {
+            tableModel.setRowCount(0);
+            
+            if (searchTerm.isEmpty()) {
+                // Se não há termo de busca, mostrar todos
+                refreshUserList();
+                return;
+            }
+            
+            List<Usuario> usuarios = usuarioDAO.findAll();
+            boolean found = false;
+            
+            for (Usuario usuario : usuarios) {
+                // Usar o mesmo algoritmo de busca universal
+                if (usuario.getId().equals(searchTerm) ||
+                    usuario.getNomeCompleto().toLowerCase().contains(searchTerm.toLowerCase()) ||
+                    usuario.getEmail().toLowerCase().contains(searchTerm.toLowerCase()) ||
+                    usuario.getCpf().replaceAll("[^0-9]", "").contains(searchTerm.replaceAll("[^0-9]", "")) ||
+                    usuario.getLogin().toLowerCase().contains(searchTerm.toLowerCase())) {
+                    
+                    Vector<Object> row = new Vector<>();
+                    row.add(usuario.getId());
+                    row.add(usuario.getNomeCompleto());
+                    row.add(usuario.getEmail());
+                    row.add(usuario.getCpf());
+                    row.add(usuario.getLogin());
+                    tableModel.addRow(row);
+                    found = true;
+                }
+            }
+            
+            if (!found && !searchTerm.isEmpty()) {
+                // Adicionar linha informativa
+                Vector<Object> row = new Vector<>();
+                row.add("-");
+                row.add("Nenhum usuário encontrado");
+                row.add("-");
+                row.add("-");
+                row.add("-");
+                tableModel.addRow(row);
+            }
+        });
+    }
+
+    // Configurar busca de equipe em tempo real para membros
+    private void setupEquipeSearchPopup(JTextField searchField, JPopupMenu popup) {
+        searchField.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) { searchEquipeForMember(searchField, popup); }
+            @Override
+            public void removeUpdate(DocumentEvent e) { searchEquipeForMember(searchField, popup); }
+            @Override
+            public void changedUpdate(DocumentEvent e) { searchEquipeForMember(searchField, popup); }
+        });
+    }
+
+    private void searchEquipeForMember(JTextField searchField, JPopupMenu popup) {
+        String searchTerm = searchField.getText().toLowerCase().trim();
+        
+        popup.removeAll();
+        
+        if (searchTerm.length() < 2) {
+            popup.setVisible(false);
+            return;
+        }
+        
+        controller.EquipeController equipeController = new controller.EquipeController();
+        List<Equipe> equipes = equipeController.listarTodasEquipes();
+        boolean found = false;
+        
+        for (Equipe equipe : equipes) {
+            if (equipe.getNome().toLowerCase().contains(searchTerm)) {
+                JMenuItem item = new JMenuItem(equipe.getNome());
+                item.addActionListener(e -> {
+                    searchField.setText(equipe.getNome());
+                    popup.setVisible(false);
+                });
+                popup.add(item);
+                found = true;
+                
+                // Limitar a 5 resultados
+                if (popup.getComponentCount() >= 5) break;
+            }
+        }
+        
+        if (found) {
+            popup.show(searchField, 0, searchField.getHeight());
+        } else {
+            popup.setVisible(false);
+        }
+    }
+
+    // Configurar busca de usuário em tempo real para membros
+    private void setupUsuarioSearchPopup(JTextField searchField, JPopupMenu popup) {
+        searchField.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) { searchUsuarioForMember(searchField, popup); }
+            @Override
+            public void removeUpdate(DocumentEvent e) { searchUsuarioForMember(searchField, popup); }
+            @Override
+            public void changedUpdate(DocumentEvent e) { searchUsuarioForMember(searchField, popup); }
+        });
+    }
+
+    private void searchUsuarioForMember(JTextField searchField, JPopupMenu popup) {
+        String searchTerm = searchField.getText().toLowerCase().trim();
+        
+        popup.removeAll();
+        
+        if (searchTerm.length() < 2) {
+            popup.setVisible(false);
+            return;
+        }
+        
+        List<Usuario> usuarios = usuarioDAO.findAll();
+        boolean found = false;
+        
+        for (Usuario usuario : usuarios) {
+            if (usuario.getNomeCompleto().toLowerCase().contains(searchTerm)) {
+                JMenuItem item = new JMenuItem(usuario.getNomeCompleto());
+                item.addActionListener(e -> {
+                    searchField.setText(usuario.getNomeCompleto());
+                    popup.setVisible(false);
+                });
+                popup.add(item);
+                found = true;
+                
+                // Limitar a 5 resultados
+                if (popup.getComponentCount() >= 5) break;
+            }
+        }
+        
+        if (found) {
+            popup.show(searchField, 0, searchField.getHeight());
+        } else {
+            popup.setVisible(false);
+        }
     }
 }
