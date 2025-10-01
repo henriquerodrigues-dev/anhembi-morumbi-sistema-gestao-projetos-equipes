@@ -60,7 +60,7 @@ java -cp "bin;lib/*" util.DataSeeder
 ## ⚙️ Setup Rápido
 
 ```bash
-git clone https://github.com/seu-usuario/anhembi-morumbi-sistema-gestao-projetos-equipes.git
+git clone https://github.com/henriquerodrigues-dev/anhembi-morumbi-sistema-gestao-projetos-equipes.git
 cd anhembi-morumbi-sistema-gestao-projetos-equipes
 javac -cp "lib/*" -d bin src/App.java src/dao/*.java src/model/*.java src/util/*.java src/controller/*.java src/view/*.java
 java -cp "bin;lib/*" App
