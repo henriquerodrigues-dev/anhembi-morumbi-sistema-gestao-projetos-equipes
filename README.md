@@ -4,6 +4,12 @@ Sistema desktop profissional em **Java Swing** com arquitetura **MVC**, design e
 
 ---
 
+## 🎬 Apresentação
+<figure class="video_container">
+  <iframe src="etc/apresentacao.mp4" frameborder="0" allowfullscreen="true"> 
+</iframe>
+</figure>
+
 ## 🧭 Visão Geral do Sistema
 
 ```mermaid
