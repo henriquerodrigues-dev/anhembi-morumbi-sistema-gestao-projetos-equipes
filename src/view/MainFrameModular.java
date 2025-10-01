@@ -183,31 +183,75 @@ public class MainFrameModular extends JFrame {
         
         // Descrição
         JTextArea descriptionArea = new JTextArea(
-            "Este sistema permite gerenciar usuários, projetos e equipes de forma integrada.\n\n" +
-            "Funcionalidades disponíveis:\n" +
-            "• Cadastro e gerenciamento de usuários\n" +
-            "• Criação e acompanhamento de projetos\n" +
-            "• Organização de equipes\n" +
-            "• Interface moderna e intuitiva\n\n" +
-            "Use o menu lateral para navegar entre as funcionalidades."
+            "Gerencie sua operação ponta a ponta com um hub único.\n\n" +
+            "• Cadastre usuários rapidamente e mantenha os dados sempre atualizados.\n" +
+            "• Crie projetos com status, prazos e responsáveis em poucos cliques.\n" +
+            "• Monte equipes, distribua membros e acompanhe a evolução do time.\n" +
+            "• Receba notificações inteligentes com feedback visual instantâneo.\n\n" +
+            "Dica: use o menu lateral para navegar nos módulos e o botão Atualizar para listas sincronizadas."
         );
-        descriptionArea.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        descriptionArea.setForeground(Color.decode("#7F8C8D"));
+        descriptionArea.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+        descriptionArea.setForeground(Color.decode("#5D6D7E"));
         descriptionArea.setOpaque(false);
         descriptionArea.setEditable(false);
+        descriptionArea.setLineWrap(true);
+        descriptionArea.setWrapStyleWord(true);
         descriptionArea.setAlignmentX(Component.CENTER_ALIGNMENT);
-        descriptionArea.setMaximumSize(new Dimension(600, 200));
-        
+        descriptionArea.setMaximumSize(new Dimension(720, 260));
+
+        JPanel cardsPanel = new JPanel(new GridLayout(1, 3, 20, 0));
+        cardsPanel.setOpaque(false);
+        cardsPanel.setMaximumSize(new Dimension(1000, 200));
+        cardsPanel.add(createHomeCard("Usuários", "Cadastre, edite e aplique buscas inteligentes com validações em tempo real."));
+        cardsPanel.add(createHomeCard("Projetos", "Controle status, prazos e responsáveis com alertas visuais instantâneos."));
+        cardsPanel.add(createHomeCard("Equipes", "Monte squads, distribua membros e acompanhe a evolução do time."));
+
         welcomePanel.add(titleLabel);
-        welcomePanel.add(Box.createVerticalStrut(20));
+        welcomePanel.add(Box.createVerticalStrut(15));
         welcomePanel.add(subtitleLabel);
-        welcomePanel.add(Box.createVerticalStrut(30));
+        welcomePanel.add(Box.createVerticalStrut(25));
         welcomePanel.add(descriptionArea);
-        
+        welcomePanel.add(Box.createVerticalStrut(35));
+        welcomePanel.add(cardsPanel);
+
         homePanel.add(welcomePanel, BorderLayout.CENTER);
         contentPanel.add(homePanel, "home");
     }
-    
+
+    private JPanel createHomeCard(String title, String description) {
+        JPanel card = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2d.setColor(new Color(255, 255, 255, 230));
+                g2d.fillRoundRect(0, 0, getWidth(), getHeight(), 18, 18);
+                g2d.setColor(new Color(0, 0, 0, 20));
+                g2d.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 18, 18);
+            }
+        };
+        card.setOpaque(false);
+        card.setLayout(new BorderLayout());
+        card.setBorder(new EmptyBorder(20, 20, 20, 20));
+
+        JLabel cardTitle = new JLabel(title);
+        cardTitle.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        cardTitle.setForeground(Color.decode("#2C3E50"));
+
+        JTextArea cardDescription = new JTextArea(description);
+        cardDescription.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        cardDescription.setForeground(Color.decode("#5D6D7E"));
+        cardDescription.setOpaque(false);
+        cardDescription.setEditable(false);
+        cardDescription.setLineWrap(true);
+        cardDescription.setWrapStyleWord(true);
+
+        card.add(cardTitle, BorderLayout.NORTH);
+        card.add(cardDescription, BorderLayout.CENTER);
+
+        return card;
+    }
+
     private void createHelpPanel() {
         helpPanel = new JPanel() {
             @Override
@@ -215,8 +259,7 @@ public class MainFrameModular extends JFrame {
                 super.paintComponent(g);
                 Graphics2D g2d = (Graphics2D) g;
                 g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                
-                // Gradient background
+
                 GradientPaint gradient = new GradientPaint(
                     0, 0, Color.decode("#ECF0F1"),
                     0, getHeight(), Color.decode("#D5DBDB")
@@ -226,66 +269,81 @@ public class MainFrameModular extends JFrame {
             }
         };
         helpPanel.setLayout(new BorderLayout());
-        
-        // Conteúdo da ajuda
+
         JPanel helpContent = new JPanel();
         helpContent.setOpaque(false);
         helpContent.setLayout(new BoxLayout(helpContent, BoxLayout.Y_AXIS));
-        helpContent.setBorder(new EmptyBorder(50, 50, 50, 50));
-        
-        // Título
+        helpContent.setBorder(new EmptyBorder(50, 60, 50, 60));
+
         JLabel helpTitle = new JLabel("Central de Ajuda");
         helpTitle.setFont(new Font("Segoe UI", Font.BOLD, 28));
         helpTitle.setForeground(Color.decode("#2C3E50"));
         helpTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
-        
-        // Conteúdo de ajuda
-        JTextArea helpText = new JTextArea(
-            "COMO USAR O SISTEMA:\n\n" +
-            
-            "1. CADASTRO DE USUÁRIO\n" +
-            "   • Preencha todos os campos obrigatórios\n" +
-            "   • O CPF será formatado automaticamente\n" +
-            "   • Use o botão do olho para mostrar/ocultar a senha\n\n" +
-            
-            "2. GERENCIAR USUÁRIOS\n" +
-            "   • Use a busca em tempo real para filtrar usuários\n" +
-            "   • Selecione um usuário para editar (individual)\n" +
-            "   • Selecione múltiplos usuários para excluir\n\n" +
-            
-            "3. GERENCIAR PROJETOS\n" +
-            "   • Digite datas no formato dd/mm/aaaa ou use o calendário\n" +
-            "   • O status pode ser selecionado ou digitado\n" +
-            "   • Digite o nome do gerente responsável\n" +
-            "   • Use 'Editar' para modificar projetos existentes\n\n" +
-            
-            "4. GERENCIAR EQUIPES\n" +
-            "   • Crie equipes com nome e descrição\n" +
-            "   • Selecione uma equipe na lista para editar\n" +
-            "   • Use 'Atualizar' para recarregar a lista\n\n" +
-            
-            "DICAS:\n" +
-            "• Todas as listas são atualizadas automaticamente\n" +
-            "• Use Ctrl+C para copiar dados das tabelas\n" +
-            "• Os campos obrigatórios são indicados nas mensagens de erro\n" +
-            "• Mantenha o sistema atualizado usando os botões 'Atualizar'"
+
+        JTextArea helpIntro = new JTextArea(
+            "Explore cada módulo com confiança:\n\n" +
+            "• Início: visão geral com os principais atalhos do dia a dia.\n" +
+            "• Usuários: cadastre e mantenha a base da organização sempre atualizada.\n" +
+            "• Projetos: acompanhe o ciclo completo com status, prazos e responsáveis.\n" +
+            "• Equipes: estruture squads, organize membros e garanta colaboração contínua.\n" +
+            "• Membros: integre usuários às equipes e gerencie alocações em segundos."
         );
-        helpText.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        helpText.setForeground(Color.decode("#2C3E50"));
-        helpText.setOpaque(false);
-        helpText.setEditable(false);
-        helpText.setAlignmentX(Component.CENTER_ALIGNMENT);
-        
-        JScrollPane helpScrollPane = new JScrollPane(helpText);
+        helpIntro.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        helpIntro.setForeground(Color.decode("#5D6D7E"));
+        helpIntro.setOpaque(false);
+        helpIntro.setEditable(false);
+        helpIntro.setLineWrap(true);
+        helpIntro.setWrapStyleWord(true);
+        helpIntro.setAlignmentX(Component.CENTER_ALIGNMENT);
+        helpIntro.setMaximumSize(new Dimension(800, 160));
+
+        JTextArea helpSteps = new JTextArea(
+            "PASSO A PASSO RÁPIDO:\n\n" +
+            "1. Cadastro de Usuário\n" +
+            "   • Informe nome, CPF, e-mail, cargo e credenciais.\n" +
+            "   • Use o ícone do olho para alternar a visibilidade da senha.\n" +
+            "   • Após salvar, você pode navegar automaticamente para a lista de usuários.\n\n" +
+            "2. Gerenciar Usuários\n" +
+            "   • Utilize a busca em tempo real para localizar registros.\n" +
+            "   • Selecione múltiplos usuários para exclusão em lote.\n" +
+            "   • Clique em Editar para enviar o usuário ao formulário de cadastro.\n\n" +
+            "3. Gerenciar Projetos\n" +
+            "   • Informe datas no formato dd/mm/aaaa ou use o seletor de calendário.\n" +
+            "   • Escolha o status ou digite um novo conforme a sua metodologia.\n" +
+            "   • Busque o gerente por nome e selecione na lista suspensa.\n\n" +
+            "4. Gerenciar Equipes\n" +
+            "   • Crie ou edite equipes com nome e descrição alinhados à área.\n" +
+            "   • Limpe o formulário com um clique para iniciar novo cadastro.\n" +
+            "   • Use Atualizar para garantir que a tabela reflita o estado mais recente.\n\n" +
+            "5. Gerenciar Membros\n" +
+            "   • Selecione a equipe desejada e insira usuários por nome ou ID.\n" +
+            "   • Evite duplicidades: o sistema verifica automaticamente.\n" +
+            "   • Utilize os botões superiores para adicionar, remover e atualizar rapidamente.\n\n" +
+            "DICAS FINAIS:\n" +
+            "• Receba feedback instantâneo através dos toasts com temporizador visual.\n" +
+            "• Liste dados atualizados com os botões Atualizar presentes em cada tela.\n" +
+            "• Combine filtros de busca para localizar usuários, projetos ou equipes em segundos."
+        );
+        helpSteps.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        helpSteps.setForeground(Color.decode("#34495E"));
+        helpSteps.setOpaque(false);
+        helpSteps.setEditable(false);
+        helpSteps.setLineWrap(true);
+        helpSteps.setWrapStyleWord(true);
+        helpSteps.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        JScrollPane helpScrollPane = new JScrollPane(helpSteps);
         helpScrollPane.setOpaque(false);
         helpScrollPane.getViewport().setOpaque(false);
         helpScrollPane.setBorder(null);
-        helpScrollPane.setPreferredSize(new Dimension(800, 500));
-        
+        helpScrollPane.setPreferredSize(new Dimension(820, 420));
+
         helpContent.add(helpTitle);
-        helpContent.add(Box.createVerticalStrut(30));
+        helpContent.add(Box.createVerticalStrut(20));
+        helpContent.add(helpIntro);
+        helpContent.add(Box.createVerticalStrut(15));
         helpContent.add(helpScrollPane);
-        
+
         helpPanel.add(helpContent, BorderLayout.CENTER);
         contentPanel.add(helpPanel, "help");
     }
@@ -428,19 +486,11 @@ public class MainFrameModular extends JFrame {
         layeredPane.addComponentListener(new ComponentAdapter() {
             @Override
             public void componentResized(ComponentEvent e) {
-                if (contentWrapper != null) {
-                    contentWrapper.setBounds(0, 0, layeredPane.getWidth(), layeredPane.getHeight());
-                    repositionToasts();
-                }
-            }
-        });
-        SwingUtilities.invokeLater(() -> {
-            if (contentWrapper != null) {
                 contentWrapper.setBounds(0, 0, layeredPane.getWidth(), layeredPane.getHeight());
                 repositionToasts();
             }
         });
-        
+
         // Adicionar sidebar e content panel
         add(sidebar, BorderLayout.WEST);
         add(layeredPane, BorderLayout.CENTER);
@@ -569,15 +619,11 @@ public class MainFrameModular extends JFrame {
         // Adicionar componentes
         toast.add(iconLabel, BorderLayout.WEST);
         toast.add(contentPanel, BorderLayout.CENTER);
-        JPanel rightWrapper = new JPanel(new BorderLayout());
-        rightWrapper.setOpaque(false);
-        rightWrapper.add(closeButton, BorderLayout.NORTH);
-        toast.add(rightWrapper, BorderLayout.EAST);
+        toast.add(closeButton, BorderLayout.EAST);
         
         // Calcular tamanho dinâmico
         int toastHeight = calculateToastHeight(message);
         toast.setSize(380, toastHeight);
-        toast.setBounds(0, 0, 380, toastHeight);
         
         // Criar entrada de toast
         entry.toastPanel = toast;
@@ -596,8 +642,7 @@ public class MainFrameModular extends JFrame {
         
         // Adicionar à lista de toasts ativos
         activeToasts.add(entry);
-        contentWrapper.add(toast);
-        contentWrapper.setComponentZOrder(toast, 0);
+        layeredPane.add(toast, JLayeredPane.POPUP_LAYER);
         layeredPane.revalidate();
         layeredPane.repaint();
     }
@@ -630,10 +675,11 @@ public class MainFrameModular extends JFrame {
     
     private void repositionToasts() {
         int yOffset = 20;
-        int width = layeredPane.getWidth();
+        Rectangle bounds = contentWrapper.getBounds();
+        int rightEdge = bounds.x + bounds.width;
         for (ToastEntry entry : activeToasts) {
             JPanel toast = entry.toastPanel;
-            toast.setLocation(width - toast.getWidth() - 20, yOffset);
+            toast.setLocation(rightEdge - toast.getWidth() - 20, yOffset);
             yOffset += toast.getHeight() + 10;
         }
         layeredPane.repaint();
