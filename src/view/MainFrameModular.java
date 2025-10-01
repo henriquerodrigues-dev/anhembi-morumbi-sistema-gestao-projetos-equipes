@@ -36,6 +36,7 @@ public class MainFrameModular extends JFrame {
     
     // Toast system
     private JLayeredPane layeredPane;
+    private JPanel contentWrapper;
     private static class ToastEntry {
         JPanel toastPanel;
         Timer autoCloseTimer;
@@ -87,6 +88,7 @@ public class MainFrameModular extends JFrame {
     private void createToastSystem() {
         layeredPane = new JLayeredPane();
         layeredPane.setOpaque(false);
+        layeredPane.setLayout(null);
     }
     
     private void createPanels() {
@@ -418,8 +420,26 @@ public class MainFrameModular extends JFrame {
         setLayout(new BorderLayout());
         
         // Adicionar layered pane como content pane
-        layeredPane.setLayout(new BorderLayout());
-        layeredPane.add(contentPanel, BorderLayout.CENTER);
+        contentWrapper = new JPanel(new BorderLayout());
+        contentWrapper.setOpaque(false);
+        contentWrapper.add(contentPanel, BorderLayout.CENTER);
+        layeredPane.add(contentWrapper, JLayeredPane.DEFAULT_LAYER);
+        contentWrapper.setBounds(0, 0, layeredPane.getWidth(), layeredPane.getHeight());
+        layeredPane.addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+                if (contentWrapper != null) {
+                    contentWrapper.setBounds(0, 0, layeredPane.getWidth(), layeredPane.getHeight());
+                    repositionToasts();
+                }
+            }
+        });
+        SwingUtilities.invokeLater(() -> {
+            if (contentWrapper != null) {
+                contentWrapper.setBounds(0, 0, layeredPane.getWidth(), layeredPane.getHeight());
+                repositionToasts();
+            }
+        });
         
         // Adicionar sidebar e content panel
         add(sidebar, BorderLayout.WEST);
@@ -549,7 +569,10 @@ public class MainFrameModular extends JFrame {
         // Adicionar componentes
         toast.add(iconLabel, BorderLayout.WEST);
         toast.add(contentPanel, BorderLayout.CENTER);
-        toast.add(closeButton, BorderLayout.EAST);
+        JPanel rightWrapper = new JPanel(new BorderLayout());
+        rightWrapper.setOpaque(false);
+        rightWrapper.add(closeButton, BorderLayout.NORTH);
+        toast.add(rightWrapper, BorderLayout.EAST);
         
         // Calcular tamanho dinâmico
         int toastHeight = calculateToastHeight(message);
@@ -573,7 +596,8 @@ public class MainFrameModular extends JFrame {
         
         // Adicionar à lista de toasts ativos
         activeToasts.add(entry);
-        layeredPane.add(toast, JLayeredPane.POPUP_LAYER);
+        contentWrapper.add(toast);
+        contentWrapper.setComponentZOrder(toast, 0);
         layeredPane.revalidate();
         layeredPane.repaint();
     }

@@ -457,14 +457,15 @@ public class GerenciarProjetoPanel extends JPanel {
     
     private void setupActions() {
         // Obter referências dos botões
-        JPanel formWrapper = (JPanel) ((JPanel) getComponent(0)).getComponent(0);
-        JPanel formContainer = (JPanel) formWrapper.getComponent(1);
-        JPanel formButtonPanel = (JPanel) formContainer.getComponent(2);
+        JPanel mainPanel = (JPanel) getComponent(0);
+        JPanel topPanel = (JPanel) mainPanel.getComponent(0);
+        JPanel formWrapper = (JPanel) topPanel.getComponent(1);
+        JPanel formButtonPanel = (JPanel) formWrapper.getComponent(2);
         JButton criarBtn = (JButton) formButtonPanel.getComponent(0);
         JButton salvarBtn = (JButton) formButtonPanel.getComponent(1);
         JButton limparBtn = (JButton) formButtonPanel.getComponent(2);
         
-        JPanel tableWrapper = (JPanel) ((JPanel) getComponent(0)).getComponent(1);
+        JPanel tableWrapper = (JPanel) mainPanel.getComponent(1);
         JPanel tableButtonPanel = (JPanel) tableWrapper.getComponent(2);
         JButton editarBtn = (JButton) tableButtonPanel.getComponent(0);
         JButton excluirBtn = (JButton) tableButtonPanel.getComponent(1);

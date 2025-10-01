@@ -145,8 +145,8 @@ public class GerenciarMembrosPanel extends JPanel {
         buttonPanel.setOpaque(false);
         buttonPanel.setBorder(new EmptyBorder(20, 0, 0, 0));
 
-        JButton adicionarBtn = createActionButton("Adicionar Membro", FontAwesomeSolid.USER_PLUS, Color.decode("#27AE60"));
-        JButton removerBtn = createActionButton("Remover Selecionados", FontAwesomeSolid.USER_MINUS, Color.decode("#E74C3C"));
+        JButton adicionarBtn = createActionButton("Adicionar Membro", FontAwesomeSolid.USER_PLUS, Color.decode("#27AE60"), 150, 50);
+        JButton removerBtn = createActionButton("Remover Selecionados", FontAwesomeSolid.USER_MINUS, Color.decode("#E74C3C"), 180, 50);
         JButton atualizarBtn = createActionButton("Atualizar", FontAwesomeSolid.SYNC_ALT, Color.decode("#3498DB"));
 
         adicionarBtn.addActionListener(e -> adicionarMembro());
@@ -212,6 +212,10 @@ public class GerenciarMembrosPanel extends JPanel {
     }
 
     private JButton createActionButton(String text, FontAwesomeSolid iconCode, Color color) {
+        return createActionButton(text, iconCode, color, 120, 40);
+    }
+
+    private JButton createActionButton(String text, FontAwesomeSolid iconCode, Color color, int width, int height) {
         JButton button = new JButton(text) {
             @Override
             protected void paintComponent(Graphics g) {
@@ -244,7 +248,7 @@ public class GerenciarMembrosPanel extends JPanel {
         button.setIcon(icon);
         button.setFont(new Font("Segoe UI", Font.BOLD, 14));
         button.setForeground(Color.WHITE);
-        button.setPreferredSize(new Dimension(120, 40));
+        button.setPreferredSize(new Dimension(width, height));
         button.setBorder(null);
         button.setFocusPainted(false);
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));

@@ -136,7 +136,7 @@ public class CadastroUsuarioPanel extends JPanel {
         formPanel.add(createFieldWithRequirement("Cargo:", FontAwesomeSolid.BRIEFCASE, cargoField, "Função na empresa"));
         formPanel.add(new JLabel()); // Espaço vazio
         
-        formPanel.add(createFieldWithRequirement("Login:", FontAwesomeSolid.USER_CIRCLE, loginField, "Mínimo 3 caracteres, letras, números, pontos e underlines"));
+        formPanel.add(createFieldWithRequirement("Login:", FontAwesomeSolid.USER_CIRCLE, loginField, "Mínimo 3 caracteres"));
         formPanel.add(new JLabel()); // Espaço vazio
         
         formPanel.add(createFieldWithRequirement("Senha:", FontAwesomeSolid.LOCK, createSenhaPanel(), "Mínimo 6 caracteres, deve conter pelo menos 1 letra e 1 número"));
