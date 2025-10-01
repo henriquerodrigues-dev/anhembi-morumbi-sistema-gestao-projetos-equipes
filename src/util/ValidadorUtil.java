@@ -76,13 +76,14 @@ public class ValidadorUtil {
     }
 
     /**
-     * Valida se o login é válido (apenas letras, números e underscore)
+     * Valida se o login é válido (aceita qualquer nome de usuário com mínimo 3 caracteres)
      */
     public static boolean validarLogin(String login) {
         if (login == null || login.trim().isEmpty()) {
             return false;
         }
-        return login.matches("^[a-zA-Z0-9_]{3,20}$");
+        // Aceita qualquer caractere exceto espaços, com mínimo 3 caracteres
+        return login.trim().length() >= 3;
     }
 
     /**

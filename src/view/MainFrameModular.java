@@ -1,0 +1,537 @@
+package view;
+
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import java.awt.*;
+import java.util.function.Consumer;
+
+import org.kordamp.ikonli.fontawesome5.FontAwesomeSolid;
+import org.kordamp.ikonli.swing.FontIcon;
+
+import model.Usuario;
+
+/**
+ * MainFrame modular usando os novos painéis separados
+ */
+public class MainFrameModular extends JFrame {
+    
+    private JPanel contentPanel;
+    private CardLayout cardLayout;
+    private CadastroUsuarioPanel cadastroUsuarioPanel;
+    private GerenciarUsuarioPanel gerenciarUsuarioPanel;
+    private GerenciarProjetoPanel gerenciarProjetoPanel;
+    private GerenciarEquipePanel gerenciarEquipePanel;
+    private GerenciarMembrosPanel gerenciarMembrosPanel;
+    private JPanel homePanel;
+    private JPanel helpPanel;
+    private JPanel sidebar;
+    
+    // Toast system
+    private JLayeredPane layeredPane;
+    private java.util.List<JPanel> activeToasts = new java.util.ArrayList<>();
+    
+    public MainFrameModular() {
+        initializeFrame();
+        createToastSystem();
+        createPanels();
+        createSidebar();
+        createHomePanel();
+        createHelpPanel();
+        setupLayout();
+        
+        // Mostrar tela inicial
+        cardLayout.show(contentPanel, "home");
+    }
+    
+    private void initializeFrame() {
+        setTitle("Sistema de Gestão de Projetos e Equipes");
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setSize(1400, 900);
+        setLocationRelativeTo(null);
+        setExtendedState(JFrame.MAXIMIZED_BOTH);
+        
+        // Ícone da aplicação (removido por compatibilidade)
+    }
+    
+    private void createToastSystem() {
+        layeredPane = new JLayeredPane();
+        layeredPane.setOpaque(false);
+    }
+    
+    private void createPanels() {
+        contentPanel = new JPanel();
+        cardLayout = new CardLayout();
+        contentPanel.setLayout(cardLayout);
+        
+        // Criar callback para toasts
+        Consumer<String> toastCallback = (message) -> {
+            String[] parts = message.split(":", 2);
+            if (parts.length == 2) {
+                showToast(parts[1], parts[0]);
+            } else {
+                showToast(message, "info");
+            }
+        };
+        
+        // Criar callback para refresh entre painéis
+        Runnable refreshUserListCallback = () -> {
+            if (gerenciarUsuarioPanel != null) {
+                gerenciarUsuarioPanel.refresh();
+            }
+        };
+        
+        // Criar callback para navegar para gerenciar usuários
+        Runnable navigateToUserManagementCallback = () -> {
+            cardLayout.show(contentPanel, "usuarios");
+            if (gerenciarUsuarioPanel != null) {
+                gerenciarUsuarioPanel.refresh();
+            }
+        };
+        
+        // Criar callback para edição de usuário
+        Consumer<Usuario> editUserCallback = (usuario) -> {
+            if (cadastroUsuarioPanel != null) {
+                cadastroUsuarioPanel.carregarUsuarioParaEdicao(usuario);
+                cardLayout.show(contentPanel, "cadastro");
+            }
+        };
+        
+        // Inicializar painéis
+        cadastroUsuarioPanel = new CadastroUsuarioPanel(toastCallback, refreshUserListCallback, navigateToUserManagementCallback);
+        gerenciarUsuarioPanel = new GerenciarUsuarioPanel(toastCallback, editUserCallback);
+        gerenciarProjetoPanel = new GerenciarProjetoPanel(toastCallback);
+        gerenciarEquipePanel = new GerenciarEquipePanel(toastCallback);
+        gerenciarMembrosPanel = new GerenciarMembrosPanel(toastCallback);
+        
+        // Adicionar painéis ao CardLayout
+        contentPanel.add(cadastroUsuarioPanel, "cadastro");
+        contentPanel.add(gerenciarUsuarioPanel, "usuarios");
+        contentPanel.add(gerenciarProjetoPanel, "projetos");
+        contentPanel.add(gerenciarEquipePanel, "equipes");
+        contentPanel.add(gerenciarMembrosPanel, "membros");
+    }
+    
+    private void createHomePanel() {
+        homePanel = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                // Gradient background
+                GradientPaint gradient = new GradientPaint(
+                    0, 0, Color.decode("#ECF0F1"),
+                    0, getHeight(), Color.decode("#D5DBDB")
+                );
+                g2d.setPaint(gradient);
+                g2d.fillRect(0, 0, getWidth(), getHeight());
+            }
+        };
+        homePanel.setLayout(new BorderLayout());
+        
+        // Conteúdo da home
+        JPanel welcomePanel = new JPanel();
+        welcomePanel.setOpaque(false);
+        welcomePanel.setLayout(new BoxLayout(welcomePanel, BoxLayout.Y_AXIS));
+        welcomePanel.setBorder(new EmptyBorder(100, 50, 100, 50));
+        
+        // Título principal
+        JLabel titleLabel = new JLabel("Sistema de Gestão de Projetos e Equipes");
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 36));
+        titleLabel.setForeground(Color.decode("#2C3E50"));
+        titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        
+        // Subtítulo
+        JLabel subtitleLabel = new JLabel("Bem-vindo ao sistema completo de gerenciamento");
+        subtitleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 18));
+        subtitleLabel.setForeground(Color.decode("#34495E"));
+        subtitleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        
+        // Descrição
+        JTextArea descriptionArea = new JTextArea(
+            "Este sistema permite gerenciar usuários, projetos e equipes de forma integrada.\n\n" +
+            "Funcionalidades disponíveis:\n" +
+            "• Cadastro e gerenciamento de usuários\n" +
+            "• Criação e acompanhamento de projetos\n" +
+            "• Organização de equipes\n" +
+            "• Interface moderna e intuitiva\n\n" +
+            "Use o menu lateral para navegar entre as funcionalidades."
+        );
+        descriptionArea.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        descriptionArea.setForeground(Color.decode("#7F8C8D"));
+        descriptionArea.setOpaque(false);
+        descriptionArea.setEditable(false);
+        descriptionArea.setAlignmentX(Component.CENTER_ALIGNMENT);
+        descriptionArea.setMaximumSize(new Dimension(600, 200));
+        
+        welcomePanel.add(titleLabel);
+        welcomePanel.add(Box.createVerticalStrut(20));
+        welcomePanel.add(subtitleLabel);
+        welcomePanel.add(Box.createVerticalStrut(30));
+        welcomePanel.add(descriptionArea);
+        
+        homePanel.add(welcomePanel, BorderLayout.CENTER);
+        contentPanel.add(homePanel, "home");
+    }
+    
+    private void createHelpPanel() {
+        helpPanel = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                // Gradient background
+                GradientPaint gradient = new GradientPaint(
+                    0, 0, Color.decode("#ECF0F1"),
+                    0, getHeight(), Color.decode("#D5DBDB")
+                );
+                g2d.setPaint(gradient);
+                g2d.fillRect(0, 0, getWidth(), getHeight());
+            }
+        };
+        helpPanel.setLayout(new BorderLayout());
+        
+        // Conteúdo da ajuda
+        JPanel helpContent = new JPanel();
+        helpContent.setOpaque(false);
+        helpContent.setLayout(new BoxLayout(helpContent, BoxLayout.Y_AXIS));
+        helpContent.setBorder(new EmptyBorder(50, 50, 50, 50));
+        
+        // Título
+        JLabel helpTitle = new JLabel("Central de Ajuda");
+        helpTitle.setFont(new Font("Segoe UI", Font.BOLD, 28));
+        helpTitle.setForeground(Color.decode("#2C3E50"));
+        helpTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
+        
+        // Conteúdo de ajuda
+        JTextArea helpText = new JTextArea(
+            "COMO USAR O SISTEMA:\n\n" +
+            
+            "1. CADASTRO DE USUÁRIO\n" +
+            "   • Preencha todos os campos obrigatórios\n" +
+            "   • O CPF será formatado automaticamente\n" +
+            "   • Use o botão do olho para mostrar/ocultar a senha\n\n" +
+            
+            "2. GERENCIAR USUÁRIOS\n" +
+            "   • Use a busca em tempo real para filtrar usuários\n" +
+            "   • Selecione um usuário para editar (individual)\n" +
+            "   • Selecione múltiplos usuários para excluir\n\n" +
+            
+            "3. GERENCIAR PROJETOS\n" +
+            "   • Digite datas no formato dd/mm/aaaa ou use o calendário\n" +
+            "   • O status pode ser selecionado ou digitado\n" +
+            "   • Digite o nome do gerente responsável\n" +
+            "   • Use 'Editar' para modificar projetos existentes\n\n" +
+            
+            "4. GERENCIAR EQUIPES\n" +
+            "   • Crie equipes com nome e descrição\n" +
+            "   • Selecione uma equipe na lista para editar\n" +
+            "   • Use 'Atualizar' para recarregar a lista\n\n" +
+            
+            "DICAS:\n" +
+            "• Todas as listas são atualizadas automaticamente\n" +
+            "• Use Ctrl+C para copiar dados das tabelas\n" +
+            "• Os campos obrigatórios são indicados nas mensagens de erro\n" +
+            "• Mantenha o sistema atualizado usando os botões 'Atualizar'"
+        );
+        helpText.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        helpText.setForeground(Color.decode("#2C3E50"));
+        helpText.setOpaque(false);
+        helpText.setEditable(false);
+        helpText.setAlignmentX(Component.CENTER_ALIGNMENT);
+        
+        JScrollPane helpScrollPane = new JScrollPane(helpText);
+        helpScrollPane.setOpaque(false);
+        helpScrollPane.getViewport().setOpaque(false);
+        helpScrollPane.setBorder(null);
+        helpScrollPane.setPreferredSize(new Dimension(800, 500));
+        
+        helpContent.add(helpTitle);
+        helpContent.add(Box.createVerticalStrut(30));
+        helpContent.add(helpScrollPane);
+        
+        helpPanel.add(helpContent, BorderLayout.CENTER);
+        contentPanel.add(helpPanel, "help");
+    }
+    
+    private void createSidebar() {
+        sidebar = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                // Gradient background
+                GradientPaint gradient = new GradientPaint(
+                    0, 0, Color.decode("#2C3E50"),
+                    0, getHeight(), Color.decode("#34495E")
+                );
+                g2d.setPaint(gradient);
+                g2d.fillRect(0, 0, getWidth(), getHeight());
+            }
+        };
+        sidebar.setPreferredSize(new Dimension(250, 0));
+        sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.Y_AXIS));
+        sidebar.setBorder(new EmptyBorder(20, 0, 20, 0));
+        
+        // Logo/Título do sistema
+        JPanel logoPanel = new JPanel();
+        logoPanel.setOpaque(false);
+        logoPanel.setMaximumSize(new Dimension(250, 80));
+        logoPanel.setLayout(new BoxLayout(logoPanel, BoxLayout.Y_AXIS));
+        
+        JLabel logoIcon = new JLabel();
+        FontIcon icon = FontIcon.of(FontAwesomeSolid.PROJECT_DIAGRAM, 32, Color.WHITE);
+        logoIcon.setIcon(icon);
+        logoIcon.setAlignmentX(Component.CENTER_ALIGNMENT);
+        
+        JLabel logoText = new JLabel("SGP&E");
+        logoText.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        logoText.setForeground(Color.WHITE);
+        logoText.setAlignmentX(Component.CENTER_ALIGNMENT);
+        
+        logoPanel.add(logoIcon);
+        logoPanel.add(Box.createVerticalStrut(5));
+        logoPanel.add(logoText);
+        
+        sidebar.add(logoPanel);
+        sidebar.add(Box.createVerticalStrut(30));
+        
+        // Botões do menu
+        sidebar.add(createMenuButton("Início", FontAwesomeSolid.HOME, "home"));
+        sidebar.add(Box.createVerticalStrut(5));
+        sidebar.add(createMenuButton("Cadastrar Usuário", FontAwesomeSolid.USER_PLUS, "cadastro"));
+        sidebar.add(Box.createVerticalStrut(5));
+        sidebar.add(createMenuButton("Gerenciar Usuários", FontAwesomeSolid.USERS, "usuarios"));
+        sidebar.add(Box.createVerticalStrut(5));
+        sidebar.add(createMenuButton("Gerenciar Projetos", FontAwesomeSolid.PROJECT_DIAGRAM, "projetos"));
+        sidebar.add(Box.createVerticalStrut(5));
+        sidebar.add(createMenuButton("Gerenciar Equipes", FontAwesomeSolid.USERS_COG, "equipes"));
+        sidebar.add(Box.createVerticalStrut(5));
+        sidebar.add(createMenuButton("Gerenciar Membros", FontAwesomeSolid.USER_COG, "membros"));
+        sidebar.add(Box.createVerticalStrut(5));
+        sidebar.add(createMenuButton("Ajuda", FontAwesomeSolid.QUESTION_CIRCLE, "help"));
+        
+        sidebar.add(Box.createVerticalGlue());
+        
+        // Não adicionar aqui - será adicionado no setupLayout()
+    }
+    
+    private JButton createMenuButton(String text, FontAwesomeSolid iconCode, String panelName) {
+        JButton button = new JButton(text) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                if (getModel().isPressed()) {
+                    g2d.setColor(new Color(255, 255, 255, 40));
+                } else if (getModel().isRollover()) {
+                    g2d.setColor(new Color(255, 255, 255, 20));
+                } else {
+                    g2d.setColor(new Color(0, 0, 0, 0));
+                }
+                
+                g2d.fillRoundRect(5, 0, getWidth() - 10, getHeight(), 10, 10);
+                
+                // Ícone e texto
+                FontIcon icon = FontIcon.of(iconCode, 16, Color.WHITE);
+                int iconX = 20;
+                int iconY = (getHeight() - 16) / 2;
+                icon.paintIcon(this, g2d, iconX, iconY);
+                
+                g2d.setColor(Color.WHITE);
+                g2d.setFont(getFont());
+                FontMetrics fm = g2d.getFontMetrics();
+                int textX = iconX + 25;
+                int textY = (getHeight() + fm.getAscent()) / 2 - 2;
+                g2d.drawString(getText(), textX, textY);
+            }
+        };
+        
+        button.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        button.setForeground(Color.WHITE);
+        button.setPreferredSize(new Dimension(240, 45));
+        button.setMaximumSize(new Dimension(240, 45));
+        button.setBorder(new EmptyBorder(10, 15, 10, 15));
+        button.setFocusPainted(false);
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        button.setContentAreaFilled(false);
+        button.setAlignmentX(Component.CENTER_ALIGNMENT);
+        
+        button.addActionListener(e -> {
+            cardLayout.show(contentPanel, panelName);
+            
+            // Refresh do painel se necessário
+            switch (panelName) {
+                case "usuarios":
+                    gerenciarUsuarioPanel.refresh();
+                    break;
+                case "projetos":
+                    // gerenciarProjetoPanel.refresh(); // Método não existe
+                    break;
+                case "equipes":
+                    // gerenciarEquipePanel.refresh(); // Método não existe
+                    break;
+            }
+        });
+        
+        return button;
+    }
+    
+    private void setupLayout() {
+        setLayout(new BorderLayout());
+        
+        // Adicionar layered pane como content pane
+        layeredPane.setLayout(new BorderLayout());
+        layeredPane.add(contentPanel, BorderLayout.CENTER);
+        
+        // Adicionar sidebar e content panel
+        add(sidebar, BorderLayout.WEST);
+        add(layeredPane, BorderLayout.CENTER);
+    }
+    
+    /**
+     * Sistema de Toast Notifications
+     */
+    private void showToast(String message, String type) {
+        // Parse do tipo e mensagem
+        String[] parts = message.split(":", 2);
+        if (parts.length == 2) {
+            type = parts[0];
+            message = parts[1];
+        }
+        
+        Color bgColor;
+        FontAwesomeSolid iconCode;
+        
+        switch (type.toLowerCase()) {
+            case "success":
+                bgColor = Color.decode("#27AE60");
+                iconCode = FontAwesomeSolid.CHECK_CIRCLE;
+                break;
+            case "error":
+                bgColor = Color.decode("#E74C3C");
+                iconCode = FontAwesomeSolid.EXCLAMATION_CIRCLE;
+                break;
+            case "warning":
+                bgColor = Color.decode("#F39C12");
+                iconCode = FontAwesomeSolid.EXCLAMATION_TRIANGLE;
+                break;
+            case "info":
+            default:
+                bgColor = Color.decode("#3498DB");
+                iconCode = FontAwesomeSolid.INFO_CIRCLE;
+                break;
+        }
+        
+        createSingleToast(message, bgColor, iconCode);
+    }
+    
+    private void createSingleToast(String message, Color bgColor, FontAwesomeSolid iconCode) {
+        JPanel toast = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                // Sombra
+                g2d.setColor(new Color(0, 0, 0, 50));
+                g2d.fillRoundRect(2, 2, getWidth() - 4, getHeight() - 4, 10, 10);
+                
+                // Fundo
+                g2d.setColor(bgColor);
+                g2d.fillRoundRect(0, 0, getWidth() - 2, getHeight() - 2, 10, 10);
+            }
+        };
+        toast.setOpaque(false);
+        toast.setLayout(new BorderLayout(5, 0));
+        
+        // Ícone
+        JLabel iconLabel = new JLabel();
+        FontIcon icon = FontIcon.of(iconCode, 20, Color.WHITE);
+        iconLabel.setIcon(icon);
+        iconLabel.setBorder(new EmptyBorder(10, 15, 10, 10));
+        
+        // Mensagem com quebra de linha automática
+        JTextArea messageArea = new JTextArea(message);
+        messageArea.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        messageArea.setForeground(Color.WHITE);
+        messageArea.setOpaque(false);
+        messageArea.setEditable(false);
+        messageArea.setLineWrap(true);
+        messageArea.setWrapStyleWord(true);
+        messageArea.setBorder(new EmptyBorder(10, 0, 10, 10));
+        
+        // Botão fechar
+        JButton closeButton = new JButton("×");
+        closeButton.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        closeButton.setForeground(Color.WHITE);
+        closeButton.setContentAreaFilled(false);
+        closeButton.setBorderPainted(false);
+        closeButton.setFocusPainted(false);
+        closeButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        closeButton.setPreferredSize(new Dimension(30, 30));
+        closeButton.addActionListener(e -> removeToast(toast));
+        
+        // Adicionar componentes
+        toast.add(iconLabel, BorderLayout.WEST);
+        toast.add(messageArea, BorderLayout.CENTER);
+        toast.add(closeButton, BorderLayout.EAST);
+        
+        // Calcular tamanho dinâmico
+        int toastHeight = calculateToastHeight(message);
+        toast.setSize(380, toastHeight);
+        toast.setBounds(0, 0, 380, toastHeight);
+        
+        // Posicionar no canto superior direito com offset para múltiplos toasts
+        int x = layeredPane.getWidth() - toast.getWidth() - 20;
+        int y = 20 + (activeToasts.size() * (toastHeight + 10));
+        toast.setLocation(x, y);
+        
+        // Adicionar à lista de toasts ativos
+        activeToasts.add(toast);
+        
+        // Adicionar ao layered pane (usar setBounds ao invés de constraint)
+        layeredPane.add(toast, JLayeredPane.POPUP_LAYER);
+        toast.setBounds(x, y, 380, toastHeight);
+        layeredPane.revalidate();
+        layeredPane.repaint();
+        
+        // Timer para remover o toast automaticamente após 3.5 segundos
+        Timer autoCloseTimer = new Timer(3500, e -> removeToast(toast));
+        autoCloseTimer.setRepeats(false);
+        autoCloseTimer.start();
+    }
+    
+    private void removeToast(JPanel toast) {
+        if (toast.getParent() != null) {
+            activeToasts.remove(toast);
+            layeredPane.remove(toast);
+            layeredPane.revalidate();
+            layeredPane.repaint();
+            
+            // Reposicionar toasts restantes
+            repositionToasts();
+        }
+    }
+    
+    private void repositionToasts() {
+        int yOffset = 20;
+        for (JPanel toast : activeToasts) {
+            toast.setLocation(layeredPane.getWidth() - toast.getWidth() - 20, yOffset);
+            yOffset += toast.getHeight() + 10;
+        }
+    }
+    
+    private int calculateToastHeight(String message) {
+        int baseHeight = 50;
+        int charsPerLine = 40; // Aproximadamente
+        int lines = Math.max(1, (message.length() / charsPerLine) + 1);
+        return baseHeight + (lines - 1) * 20;
+    }
+}

@@ -1,5 +1,5 @@
 import util.Database;
-import view.MainFrame;
+import view.MainFrameModular;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
@@ -30,9 +30,7 @@ public class App {
      */
     private static void inicializarBancoDados() {
         try {
-            System.out.println("Inicializando banco de dados...");
             Database.createTables();
-            System.out.println("Banco de dados inicializado com sucesso!");
         } catch (Exception e) {
             System.err.println("Erro ao inicializar banco de dados: " + e.getMessage());
             System.exit(1);
@@ -45,9 +43,8 @@ public class App {
     private static void iniciarInterface() {
         SwingUtilities.invokeLater(() -> {
             try {
-                MainFrame mainFrame = new MainFrame();
+                MainFrameModular mainFrame = new MainFrameModular();
                 mainFrame.setVisible(true);
-                System.out.println("Sistema iniciado com sucesso!");
             } catch (Exception e) {
                 System.err.println("Erro ao iniciar interface: " + e.getMessage());
                 e.printStackTrace();
