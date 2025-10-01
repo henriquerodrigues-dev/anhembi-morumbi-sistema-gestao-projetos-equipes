@@ -1,8 +1,6 @@
 import util.Database;
 import view.MainFrameModular;
 import javax.swing.SwingUtilities;
-import javax.swing.UIManager;
-import javax.swing.UnsupportedLookAndFeelException;
 
 /**
  * Classe principal do Sistema de Gestão de Projetos e Equipes

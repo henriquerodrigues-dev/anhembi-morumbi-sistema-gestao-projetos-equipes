@@ -102,21 +102,13 @@ public class GerenciarProjetoPanel extends JPanel {
         mainPanel.setBackground(Color.decode("#ECF0F1"));
         mainPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
         
-        // Título
-        JPanel titlePanel = createTitlePanel();
+        JPanel topPanel = new JPanel(new BorderLayout());
+        topPanel.setOpaque(false);
+        topPanel.add(createTitlePanel(), BorderLayout.NORTH);
+        topPanel.add(createFormPanel(), BorderLayout.CENTER);
         
-        // Formulário e tabela lado a lado
-        JPanel contentPanel = new JPanel(new GridLayout(1, 2, 20, 0));
-        contentPanel.setOpaque(false);
-        
-        JPanel formPanel = createFormPanel();
-        JPanel tablePanel = createTablePanel();
-        
-        contentPanel.add(formPanel);
-        contentPanel.add(tablePanel);
-        
-        mainPanel.add(titlePanel, BorderLayout.NORTH);
-        mainPanel.add(contentPanel, BorderLayout.CENTER);
+        mainPanel.add(topPanel, BorderLayout.NORTH);
+        mainPanel.add(createTablePanel(), BorderLayout.CENTER);
         
         add(mainPanel, BorderLayout.CENTER);
     }
@@ -465,13 +457,14 @@ public class GerenciarProjetoPanel extends JPanel {
     
     private void setupActions() {
         // Obter referências dos botões
-        JPanel formWrapper = (JPanel) ((JPanel) ((JPanel) getComponent(0)).getComponent(1)).getComponent(0);
-        JPanel formButtonPanel = (JPanel) formWrapper.getComponent(2);
+        JPanel formWrapper = (JPanel) ((JPanel) getComponent(0)).getComponent(0);
+        JPanel formContainer = (JPanel) formWrapper.getComponent(1);
+        JPanel formButtonPanel = (JPanel) formContainer.getComponent(2);
         JButton criarBtn = (JButton) formButtonPanel.getComponent(0);
         JButton salvarBtn = (JButton) formButtonPanel.getComponent(1);
         JButton limparBtn = (JButton) formButtonPanel.getComponent(2);
         
-        JPanel tableWrapper = (JPanel) ((JPanel) ((JPanel) getComponent(0)).getComponent(1)).getComponent(1);
+        JPanel tableWrapper = (JPanel) ((JPanel) getComponent(0)).getComponent(1);
         JPanel tableButtonPanel = (JPanel) tableWrapper.getComponent(2);
         JButton editarBtn = (JButton) tableButtonPanel.getComponent(0);
         JButton excluirBtn = (JButton) tableButtonPanel.getComponent(1);

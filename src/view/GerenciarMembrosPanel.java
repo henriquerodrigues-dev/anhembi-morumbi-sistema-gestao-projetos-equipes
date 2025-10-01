@@ -34,20 +34,18 @@ public class GerenciarMembrosPanel extends JPanel {
     }
     
     private void initializeComponents() {
-        setOpaque(false);
-        
-        // ComboBox para seleção de equipe
+        setBackground(Color.decode("#ECF0F1"));
+        setLayout(new BorderLayout());
+
         equipeComboBox = new JComboBox<>();
         equipeComboBox.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         equipeComboBox.setPreferredSize(new Dimension(0, 35));
         equipeComboBox.addActionListener(e -> onEquipeSelected());
-        
-        // Campo de busca de usuário
+
         usuarioSearchField = createStyledTextField();
         usuarioSearchField.setToolTipText("Digite o nome do usuário para buscar...");
         setupUsuarioSearch();
-        
-        // Tabela de membros
+
         String[] colunas = {"ID", "Nome", "Email", "Cargo"};
         membrosTableModel = new DefaultTableModel(colunas, 0) {
             @Override
@@ -55,145 +53,150 @@ public class GerenciarMembrosPanel extends JPanel {
                 return false;
             }
         };
-        
+
         membrosTable = new JTable(membrosTableModel);
+        membrosTable.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        membrosTable.setRowHeight(25);
+        membrosTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
+        membrosTable.getTableHeader().setBackground(Color.decode("#34495E"));
+        membrosTable.getTableHeader().setForeground(Color.WHITE);
         membrosTable.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
-        membrosTable.setRowHeight(30);
-        membrosTable.getTableHeader().setReorderingAllowed(false);
-        
-        // Ocultar coluna ID
+
         membrosTable.getColumnModel().getColumn(0).setMinWidth(0);
         membrosTable.getColumnModel().getColumn(0).setMaxWidth(0);
         membrosTable.getColumnModel().getColumn(0).setPreferredWidth(0);
     }
     
     private void setupLayout() {
-        setLayout(new BorderLayout());
         setBorder(new EmptyBorder(20, 20, 20, 20));
-        
-        // Painel principal com fundo
-        JPanel mainPanel = new JPanel(new BorderLayout()) {
+
+        JPanel mainPanel = new JPanel(new BorderLayout());
+        mainPanel.setBackground(Color.decode("#ECF0F1"));
+        mainPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
+
+        JPanel topPanel = new JPanel(new BorderLayout());
+        topPanel.setOpaque(false);
+        topPanel.add(createTitlePanel(), BorderLayout.NORTH);
+        topPanel.add(createFormPanel(), BorderLayout.CENTER);
+
+        mainPanel.add(topPanel, BorderLayout.NORTH);
+        mainPanel.add(createTablePanel(), BorderLayout.CENTER);
+
+        add(mainPanel, BorderLayout.CENTER);
+    }
+    
+    private JPanel createTitlePanel() {
+        JPanel titlePanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
+        titlePanel.setOpaque(false);
+
+        JLabel iconLabel = new JLabel();
+        FontIcon icon = FontIcon.of(FontAwesomeSolid.USER_COG, 24, Color.decode("#2C3E50"));
+        iconLabel.setIcon(icon);
+
+        JLabel titleText = new JLabel("Gerenciar Membros");
+        titleText.setFont(new Font("Segoe UI", Font.BOLD, 28));
+        titleText.setForeground(Color.decode("#2C3E50"));
+
+        titlePanel.add(iconLabel);
+        titlePanel.add(titleText);
+        titlePanel.setBorder(new EmptyBorder(0, 0, 20, 0));
+
+        return titlePanel;
+    }
+    
+    private JPanel createFormPanel() {
+        JPanel formWrapper = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
                 Graphics2D g2d = (Graphics2D) g;
                 g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                
-                // Card background
+
                 g2d.setColor(new Color(0, 0, 0, 20));
-                g2d.fillRoundRect(12, 12, getWidth() - 24, getHeight() - 24, 15, 15);
-                
+                g2d.fillRoundRect(12, 12, getWidth() - 24, getHeight() - 24, 20, 20);
+
                 g2d.setColor(Color.WHITE);
-                g2d.fillRoundRect(10, 10, getWidth() - 20, getHeight() - 20, 15, 15);
+                g2d.fillRoundRect(0, 0, getWidth() - 10, getHeight() - 10, 20, 20);
             }
         };
-        mainPanel.setOpaque(false);
-        mainPanel.setBorder(new EmptyBorder(30, 30, 30, 30));
-        
-        // Título
-        JPanel titlePanel = createTitlePanel();
-        
-        // Formulário
-        JPanel formPanel = createFormPanel();
-        
-        // Tabela
-        JPanel tablePanel = createTablePanel();
-        
-        mainPanel.add(titlePanel, BorderLayout.NORTH);
-        mainPanel.add(formPanel, BorderLayout.CENTER);
-        mainPanel.add(tablePanel, BorderLayout.SOUTH);
-        
-        add(mainPanel, BorderLayout.CENTER);
-    }
-    
-    private JPanel createTitlePanel() {
-        JPanel titlePanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-        titlePanel.setOpaque(false);
-        
-        JLabel iconLabel = new JLabel();
-        FontIcon icon = FontIcon.of(FontAwesomeSolid.USER_COG, 24, Color.decode("#2C3E50"));
-        iconLabel.setIcon(icon);
-        
-        JLabel titleText = new JLabel("Gerenciamento de Membros");
-        titleText.setFont(new Font("Segoe UI", Font.BOLD, 28));
-        titleText.setForeground(Color.decode("#2C3E50"));
-        
-        titlePanel.add(iconLabel);
-        titlePanel.add(Box.createHorizontalStrut(15));
-        titlePanel.add(titleText);
-        titlePanel.setBorder(new EmptyBorder(0, 0, 30, 0));
-        
-        return titlePanel;
-    }
-    
-    private JPanel createFormPanel() {
-        JPanel formPanel = new JPanel();
-        formPanel.setLayout(new BoxLayout(formPanel, BoxLayout.Y_AXIS));
-        formPanel.setOpaque(false);
-        formPanel.setBorder(new EmptyBorder(0, 0, 30, 0));
-        
-        // Seleção de equipe
-        JPanel equipeLabel = createFieldLabel("Selecionar Equipe:", FontAwesomeSolid.USERS);
-        equipeLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        
-        equipeComboBox.setAlignmentX(Component.LEFT_ALIGNMENT);
-        equipeComboBox.setMaximumSize(new Dimension(Integer.MAX_VALUE, 35));
-        
-        formPanel.add(equipeLabel);
-        formPanel.add(Box.createVerticalStrut(5));
-        formPanel.add(equipeComboBox);
-        formPanel.add(Box.createVerticalStrut(20));
-        
-        // Busca de usuário
-        JPanel usuarioLabel = createFieldLabel("Buscar Usuário:", FontAwesomeSolid.SEARCH);
-        usuarioLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        
-        usuarioSearchField.setAlignmentX(Component.LEFT_ALIGNMENT);
-        usuarioSearchField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 35));
-        
-        formPanel.add(usuarioLabel);
-        formPanel.add(Box.createVerticalStrut(5));
-        formPanel.add(usuarioSearchField);
-        formPanel.add(Box.createVerticalStrut(20));
-        
-        // Botões
+        formWrapper.setOpaque(false);
+        formWrapper.setBorder(new EmptyBorder(30, 30, 30, 30));
+        formWrapper.setLayout(new BorderLayout());
+
+        JLabel formTitle = new JLabel("Gerenciar Membros da Equipe");
+        formTitle.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        formTitle.setForeground(Color.decode("#2C3E50"));
+        formTitle.setHorizontalAlignment(SwingConstants.CENTER);
+        formTitle.setBorder(new EmptyBorder(0, 0, 20, 0));
+
+        JPanel fieldsPanel = new JPanel();
+        fieldsPanel.setLayout(new BoxLayout(fieldsPanel, BoxLayout.Y_AXIS));
+        fieldsPanel.setOpaque(false);
+
+        fieldsPanel.add(createFieldLabel("Selecionar Equipe:", FontAwesomeSolid.USERS));
+        fieldsPanel.add(equipeComboBox);
+        fieldsPanel.add(Box.createVerticalStrut(10));
+
+        fieldsPanel.add(createFieldLabel("Buscar Usuário:", FontAwesomeSolid.SEARCH));
+        fieldsPanel.add(usuarioSearchField);
+        fieldsPanel.add(Box.createVerticalStrut(10));
+
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 0));
         buttonPanel.setOpaque(false);
-        buttonPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        
+        buttonPanel.setBorder(new EmptyBorder(20, 0, 0, 0));
+
         JButton adicionarBtn = createActionButton("Adicionar Membro", FontAwesomeSolid.USER_PLUS, Color.decode("#27AE60"));
         JButton removerBtn = createActionButton("Remover Selecionados", FontAwesomeSolid.USER_MINUS, Color.decode("#E74C3C"));
         JButton atualizarBtn = createActionButton("Atualizar", FontAwesomeSolid.SYNC_ALT, Color.decode("#3498DB"));
-        
+
         adicionarBtn.addActionListener(e -> adicionarMembro());
         removerBtn.addActionListener(e -> removerMembros());
         atualizarBtn.addActionListener(e -> loadEquipes());
-        
+
         buttonPanel.add(adicionarBtn);
         buttonPanel.add(removerBtn);
         buttonPanel.add(atualizarBtn);
-        formPanel.add(buttonPanel);
-        
-        return formPanel;
+
+        formWrapper.add(formTitle, BorderLayout.NORTH);
+        formWrapper.add(fieldsPanel, BorderLayout.CENTER);
+        formWrapper.add(buttonPanel, BorderLayout.SOUTH);
+
+        return formWrapper;
     }
     
     private JPanel createTablePanel() {
-        JPanel tablePanel = new JPanel(new BorderLayout());
-        tablePanel.setOpaque(false);
-        
+        JPanel tableWrapper = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                g2d.setColor(new Color(0, 0, 0, 20));
+                g2d.fillRoundRect(12, 12, getWidth() - 24, getHeight() - 24, 20, 20);
+
+                g2d.setColor(Color.WHITE);
+                g2d.fillRoundRect(0, 0, getWidth() - 10, getHeight() - 10, 20, 20);
+            }
+        };
+        tableWrapper.setOpaque(false);
+        tableWrapper.setBorder(new EmptyBorder(30, 30, 30, 30));
+        tableWrapper.setLayout(new BorderLayout());
+
         JLabel tableTitle = new JLabel("Membros da Equipe");
         tableTitle.setFont(new Font("Segoe UI", Font.BOLD, 18));
         tableTitle.setForeground(Color.decode("#2C3E50"));
-        tableTitle.setBorder(new EmptyBorder(0, 0, 15, 0));
-        
+        tableTitle.setHorizontalAlignment(SwingConstants.CENTER);
+        tableTitle.setBorder(new EmptyBorder(0, 0, 20, 0));
+
         JScrollPane scrollPane = new JScrollPane(membrosTable);
-        scrollPane.setPreferredSize(new Dimension(0, 300));
+        scrollPane.setPreferredSize(new Dimension(0, 400));
         scrollPane.setBorder(BorderFactory.createLineBorder(Color.decode("#BDC3C7"), 1));
-        
-        tablePanel.add(tableTitle, BorderLayout.NORTH);
-        tablePanel.add(scrollPane, BorderLayout.CENTER);
-        
-        return tablePanel;
+
+        tableWrapper.add(tableTitle, BorderLayout.NORTH);
+        tableWrapper.add(scrollPane, BorderLayout.CENTER);
+
+        return tableWrapper;
     }
     
     private JTextField createStyledTextField() {
@@ -201,21 +204,51 @@ public class GerenciarMembrosPanel extends JPanel {
         field.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         field.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(Color.decode("#BDC3C7"), 1),
-            BorderFactory.createEmptyBorder(8, 12, 8, 12)
+            new EmptyBorder(8, 12, 8, 12)
         ));
+        field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 35));
+        field.setPreferredSize(new Dimension(0, 35));
         return field;
     }
-    
+
     private JButton createActionButton(String text, FontAwesomeSolid iconCode, Color color) {
-        JButton button = new JButton(text);
+        JButton button = new JButton(text) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                Color baseColor = color;
+                if (getModel().isPressed()) {
+                    baseColor = color.darker();
+                } else if (getModel().isRollover()) {
+                    baseColor = color.brighter();
+                }
+
+                g2d.setColor(baseColor);
+                g2d.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+
+                FontMetrics fm = g2d.getFontMetrics();
+                int textWidth = fm.stringWidth(getText());
+                int textHeight = fm.getHeight();
+                int x = (getWidth() - textWidth) / 2;
+                int y = (getHeight() + textHeight) / 2 - fm.getDescent();
+
+                g2d.setColor(Color.WHITE);
+                g2d.setFont(getFont());
+                g2d.drawString(getText(), x, y);
+            }
+        };
+
         FontIcon icon = FontIcon.of(iconCode, 16, Color.WHITE);
         button.setIcon(icon);
         button.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        button.setBackground(color);
         button.setForeground(Color.WHITE);
-        button.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
+        button.setPreferredSize(new Dimension(120, 40));
+        button.setBorder(null);
         button.setFocusPainted(false);
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        button.setContentAreaFilled(false);
         return button;
     }
     

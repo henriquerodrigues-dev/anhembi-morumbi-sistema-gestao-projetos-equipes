@@ -2,7 +2,15 @@ package view;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.event.AncestorEvent;
+import javax.swing.event.AncestorListener;
 import java.awt.*;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.List;
 import java.util.function.Consumer;
 
 import org.kordamp.ikonli.fontawesome5.FontAwesomeSolid;
@@ -28,7 +36,30 @@ public class MainFrameModular extends JFrame {
     
     // Toast system
     private JLayeredPane layeredPane;
-    private java.util.List<JPanel> activeToasts = new java.util.ArrayList<>();
+    private static class ToastEntry {
+        JPanel toastPanel;
+        Timer autoCloseTimer;
+        Timer progressTimer;
+        JProgressBar progressBar;
+        long startTime;
+        long duration;
+    }
+
+    private static class ToastRequest {
+        final String message;
+        final Color background;
+        final FontAwesomeSolid iconCode;
+
+        ToastRequest(String message, Color background, FontAwesomeSolid iconCode) {
+            this.message = message;
+            this.background = background;
+            this.iconCode = iconCode;
+        }
+    }
+
+    private static final int MAX_VISIBLE_TOASTS = 5;
+    private final List<ToastEntry> activeToasts = new ArrayList<>();
+    private final Deque<ToastRequest> toastQueue = new ArrayDeque<>();
     
     public MainFrameModular() {
         initializeFrame();
@@ -429,10 +460,32 @@ public class MainFrameModular extends JFrame {
                 break;
         }
         
-        createSingleToast(message, bgColor, iconCode);
+        enqueueToast(message, bgColor, iconCode);
     }
     
-    private void createSingleToast(String message, Color bgColor, FontAwesomeSolid iconCode) {
+    private void enqueueToast(String message, Color bgColor, FontAwesomeSolid iconCode) {
+        ToastRequest request = new ToastRequest(message, bgColor, iconCode);
+        toastQueue.offer(request);
+        processToastQueue();
+    }
+
+    private void processToastQueue() {
+        while (activeToasts.size() < MAX_VISIBLE_TOASTS && !toastQueue.isEmpty()) {
+            ToastRequest request = toastQueue.poll();
+            if (request != null) {
+                createSingleToast(request);
+            }
+        }
+        repositionToasts();
+    }
+
+    private void createSingleToast(ToastRequest request) {
+        String message = request.message;
+        Color bgColor = request.background;
+        FontAwesomeSolid iconCode = request.iconCode;
+
+        final ToastEntry entry = new ToastEntry();
+
         JPanel toast = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
@@ -467,6 +520,21 @@ public class MainFrameModular extends JFrame {
         messageArea.setWrapStyleWord(true);
         messageArea.setBorder(new EmptyBorder(10, 0, 10, 10));
         
+        // Barra de progresso
+        JProgressBar progressBar = new JProgressBar(0, 100);
+        progressBar.setValue(100);
+        progressBar.setForeground(Color.WHITE);
+        progressBar.setBackground(new Color(255, 255, 255, 50));
+        progressBar.setBorder(new EmptyBorder(0, 0, 0, 0));
+        progressBar.setPreferredSize(new Dimension(0, 4));
+        progressBar.setStringPainted(false);
+        
+        // Conteúdo central com botão fechar e barra
+        JPanel contentPanel = new JPanel(new BorderLayout());
+        contentPanel.setOpaque(false);
+        contentPanel.add(messageArea, BorderLayout.CENTER);
+        contentPanel.add(progressBar, BorderLayout.SOUTH);
+        
         // Botão fechar
         JButton closeButton = new JButton("×");
         closeButton.setFont(new Font("Segoe UI", Font.BOLD, 20));
@@ -476,11 +544,11 @@ public class MainFrameModular extends JFrame {
         closeButton.setFocusPainted(false);
         closeButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
         closeButton.setPreferredSize(new Dimension(30, 30));
-        closeButton.addActionListener(e -> removeToast(toast));
+        closeButton.addActionListener(e -> removeToast(entry));
         
         // Adicionar componentes
         toast.add(iconLabel, BorderLayout.WEST);
-        toast.add(messageArea, BorderLayout.CENTER);
+        toast.add(contentPanel, BorderLayout.CENTER);
         toast.add(closeButton, BorderLayout.EAST);
         
         // Calcular tamanho dinâmico
@@ -488,44 +556,63 @@ public class MainFrameModular extends JFrame {
         toast.setSize(380, toastHeight);
         toast.setBounds(0, 0, 380, toastHeight);
         
-        // Posicionar no canto superior direito com offset para múltiplos toasts
-        int x = layeredPane.getWidth() - toast.getWidth() - 20;
-        int y = 20 + (activeToasts.size() * (toastHeight + 10));
-        toast.setLocation(x, y);
+        // Criar entrada de toast
+        entry.toastPanel = toast;
+        entry.progressBar = progressBar;
+        entry.startTime = System.currentTimeMillis();
+        entry.duration = 3500L; // 3.5 segundos
+        
+        // Timer de progresso (atualiza a barra a cada 50ms)
+        entry.progressTimer = new Timer(50, e -> updateToastProgress(entry));
+        entry.progressTimer.start();
+        
+        // Timer de auto-fechamento
+        entry.autoCloseTimer = new Timer((int) entry.duration, e -> removeToast(entry));
+        entry.autoCloseTimer.setRepeats(false);
+        entry.autoCloseTimer.start();
         
         // Adicionar à lista de toasts ativos
-        activeToasts.add(toast);
-        
-        // Adicionar ao layered pane (usar setBounds ao invés de constraint)
+        activeToasts.add(entry);
         layeredPane.add(toast, JLayeredPane.POPUP_LAYER);
-        toast.setBounds(x, y, 380, toastHeight);
         layeredPane.revalidate();
         layeredPane.repaint();
-        
-        // Timer para remover o toast automaticamente após 3.5 segundos
-        Timer autoCloseTimer = new Timer(3500, e -> removeToast(toast));
-        autoCloseTimer.setRepeats(false);
-        autoCloseTimer.start();
     }
     
-    private void removeToast(JPanel toast) {
-        if (toast.getParent() != null) {
-            activeToasts.remove(toast);
-            layeredPane.remove(toast);
-            layeredPane.revalidate();
-            layeredPane.repaint();
-            
-            // Reposicionar toasts restantes
-            repositionToasts();
+    private void updateToastProgress(ToastEntry entry) {
+        long elapsed = System.currentTimeMillis() - entry.startTime;
+        float remaining = Math.max(0f, 1f - (float) elapsed / (float) entry.duration);
+        int percentage = Math.max(0, Math.min(100, Math.round(remaining * 100)));
+        entry.progressBar.setValue(percentage);
+        entry.progressBar.repaint();
+    }
+
+    private void removeToast(ToastEntry entry) {
+        if (entry == null) return;
+
+        if (entry.autoCloseTimer != null) {
+            entry.autoCloseTimer.stop();
         }
+        if (entry.progressTimer != null) {
+            entry.progressTimer.stop();
+        }
+        activeToasts.remove(entry);
+        layeredPane.remove(entry.toastPanel);
+        layeredPane.revalidate();
+        layeredPane.repaint();
+
+        processToastQueue();
+        repositionToasts();
     }
     
     private void repositionToasts() {
         int yOffset = 20;
-        for (JPanel toast : activeToasts) {
-            toast.setLocation(layeredPane.getWidth() - toast.getWidth() - 20, yOffset);
+        int width = layeredPane.getWidth();
+        for (ToastEntry entry : activeToasts) {
+            JPanel toast = entry.toastPanel;
+            toast.setLocation(width - toast.getWidth() - 20, yOffset);
             yOffset += toast.getHeight() + 10;
         }
+        layeredPane.repaint();
     }
     
     private int calculateToastHeight(String message) {
