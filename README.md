@@ -66,7 +66,7 @@ java -cp "bin;lib/*" util.DataSeeder
 ## ⚙️ Setup Rápido
 
 ```bash
-git clone https://github.com/seu-usuario/anhembi-morumbi-sistema-gestao-projetos-equipes.git
+git clone https://github.com/henriquerodrigues-dev/anhembi-morumbi-sistema-gestao-projetos-equipes.git
 cd anhembi-morumbi-sistema-gestao-projetos-equipes
 javac -cp "lib/*" -d bin src/App.java src/dao/*.java src/model/*.java src/util/*.java src/controller/*.java src/view/*.java
 java -cp "bin;lib/*" App
@@ -140,11 +140,16 @@ java -cp "bin;lib/*" App
 
 ---
 
-## 📞 Contato
+## 👁️‍🗨️ Informações Úteis
 
 - **Projeto:** Sistema de Gestão de Projetos e Equipes
 - **Disciplina:** Programação de Soluções Computacionais – Universidade Anhembi Morumbi
 - **Tecnologias:** Java Swing + SQLite + MVC
-- **Repositório:** [GitHub](https://github.com/seu-usuario/anhembi-morumbi-sistema-gestao-projetos-equipes)
+- **Repositório:** [GitHub](https://github.com/henriquerodrigues-dev/anhembi-morumbi-sistema-gestao-projetos-equipes)
 
-> Desenvolvido com ❤️ para demonstrar excelência em software desktop profissional.
+## 🙋‍♂️ Autor
+
+Feito por **Henrique Rodrigues**
+
+[![LinkedIn](https://img.shields.io/badge/-LinkedIn-0A66C2?style=flat&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/henriquerodrigues-dev/)
+[![GitHub](https://img.shields.io/badge/-GitHub-181717?style=flat&logo=github&logoColor=white)](https://github.com/henriquerodrigues-dev)
