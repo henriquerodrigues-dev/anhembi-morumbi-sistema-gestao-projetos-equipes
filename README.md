@@ -134,7 +134,7 @@ java -cp "bin;lib/*" App
 
 ---
 
-## 📞 Informações Úteis
+## 👁️‍🗨️ Informações Úteis
 
 - **Projeto:** Sistema de Gestão de Projetos e Equipes
 - **Disciplina:** Programação de Soluções Computacionais – Universidade Anhembi Morumbi
